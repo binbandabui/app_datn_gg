@@ -23,7 +23,10 @@ const storage = multer.diskStorage({
     cb(null, `${fileName}-${Date.now()}.${extension}`);
   },
 });
-const uploadOptions = multer({ storage: storage });
+const uploadOptions = multer({
+  limits: { fileSize: 1024 * 1024 * 5 },
+  storage: storage,
+});
 
 router.get(`/`, async (req, res) => {
   const restaurantList = await Restaurant.find();

@@ -32,7 +32,10 @@ const storage = multer.diskStorage({
   },
 });
 
-const uploadOptions = multer({ storage: storage });
+const uploadOptions = multer({
+  limits: { fileSize: 1024 * 1024 * 5 },
+  storage: storage,
+});
 
 // Get all products with optional filtering by category
 router.get(`/`, async (req, res) => {
