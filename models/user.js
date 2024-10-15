@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const validate = require("validate");
 const userSchema = mongoose.Schema({
   name: {
     type: String,
