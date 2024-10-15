@@ -30,7 +30,10 @@ const storage = multer.diskStorage({
   },
 });
 
-const uploadOptions = multer({ storage: storage });
+const uploadOptions = multer({
+  limits: { fileSize: 1024 * 1024 * 5 },
+  storage: storage,
+});
 router.get(`/`, async (req, res) => {
   const categoryList = await Category.find();
   if (!categoryList) {
