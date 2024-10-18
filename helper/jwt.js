@@ -45,9 +45,13 @@ function authJwt() {
       pattern: /^\/api\/v1\/favorites\/edituser(\/|$)/,
       methods: ["PUT"],
     },
-    //Register
+    //Register/verify-email
     {
       pattern: /^\/api\/v1\/users\/register(\/|$)/,
+      methods: ["POST"],
+    },
+    {
+      pattern: /^\/api\/v1\/users\/verify-email(\/|$)/,
       methods: ["POST"],
     },
     //Forgot password
