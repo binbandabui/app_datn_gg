@@ -291,6 +291,8 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         email: req.body.email || category.email,
         paymentInfo: req.body.paymentInfo || category.paymentInfo,
         image: imagePath,
+        isAdmin: req.body.isAdmin || category.isAdmin,
+        isVerified: req.body.isVerified || category.isVerified,
       },
       { new: true }
     );
@@ -483,5 +485,6 @@ router.post("/reset-password", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+//
 
 module.exports = router;

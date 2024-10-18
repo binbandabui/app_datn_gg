@@ -14,10 +14,8 @@ const categoryRouter = require("./routers/category");
 const orderRouter = require("./routers/order");
 // const cartRouter = require("./routers/cart");
 const restaurantRouter = require("./routers/restaurant");
-const ingrediantRouter = require("./routers/ingrediant");
 const orderItemRouter = require("./routers/order-item");
 const favoriteRouter = require("./routers/favorite");
-const typeRouter = require("./routers/type");
 const attributeRouter = require("./routers/attribute");
 //
 
