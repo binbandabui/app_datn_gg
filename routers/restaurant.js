@@ -67,6 +67,40 @@ router.get(`/:id`, async (req, res) => {
   }
   res.status(200).send(restaurant);
 });
+router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      console.log("No file received");
+      return res.status(400).send("No image file provided");
+    }
+    console.log("File uploaded successfully:", file);
+    const fileName = file.filename;
+    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      {
+        name: req.body.name || restaurant.name,
+        address: req.body.address || restaurant.address,
+        review: req.body.review || restaurant.review,
+        image: `${basePath}${fileName}`,
+      },
+      { new: true }
+
+      // If no restaurant is found after update, return a 404 error
+    );
+    if (!restaurant) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Restaurant not found" });
+    }
+
+    // Send the updated restaurant as a response
+    res.status(200).json(restaurant);
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
 router.delete(`/:id`, async (req, res) => {
   try {
     const restaurant = await Restaurant.findByIdAndDelete(req.params.id);
