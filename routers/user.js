@@ -257,13 +257,6 @@ router.delete(`/:id`, async (req, res) => {
   }
 });
 router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
-  // Validate ObjectId
-  if (!mongoose.isValidObjectId(req.params.id)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid category ID" });
-  }
-
   try {
     // Find the category by ID
     let category = await User.findById(req.params.id);
