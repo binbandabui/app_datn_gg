@@ -67,5 +67,20 @@ router.get(`/:id`, async (req, res) => {
   }
   res.status(200).send(restaurant);
 });
-
+router.delete(`/:id`, async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findByIdAndDelete(req.params.id);
+    if (restaurant) {
+      return res
+        .status(200)
+        .json({ success: true, message: "Restaurant was removed" });
+    } else {
+      return res
+        .status(404)
+        .json({ success: false, message: "Restaurant not found" });
+    }
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
 module.exports = router;
