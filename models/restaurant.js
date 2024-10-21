@@ -16,6 +16,10 @@ const restaurantSchema = mongoose.Schema({
     type: String,
     default: "",
   },
+  gallery: {
+    type: Array,
+    default: [],
+  },
 });
 const Restaurant = mongoose.model("Restaurant", restaurantSchema);
 module.exports = Restaurant;

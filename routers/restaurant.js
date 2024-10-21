@@ -117,4 +117,36 @@ router.delete(`/:id`, async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 });
+// Upload multiple images for a product
+router.put(
+  "/gallery-images/:id",
+  uploadOptions.array("gallery", 10),
+  async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).send("Invalid Restaurant Id");
+    }
+    const files = req.files;
+    let imagesPaths = [];
+    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+
+    if (files) {
+      files.map((file) => {
+        imagesPaths.push(`${basePath}${file.filename}`);
+      });
+    }
+
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      {
+        gallery: imagesPaths,
+      },
+      { new: true }
+    );
+
+    if (!restaurant)
+      return res.status(500).send("the gallery cannot be updated!");
+
+    res.send(restaurant);
+  }
+);
 module.exports = router;
