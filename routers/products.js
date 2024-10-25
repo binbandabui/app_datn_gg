@@ -144,7 +144,36 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
     res.status(500).send("Internal server error");
   }
 });
+// Search products by name or description
+router.get("/search", async (req, res) => {
+  const searchQuery = req.query.input;
+  if (!searchQuery) {
+    return res.status(400).json({
+      success: false,
+      message: "Search query is required",
+    });
+  }
 
+  try {
+    // Use regex to perform a case-insensitive search on name and description fields
+    const products = await Product.find({
+      $or: [
+        { name: { $regex: searchQuery, $options: "i" } },
+        { description: { $regex: searchQuery, $options: "i" } },
+      ],
+    }).populate("category");
+
+    if (!products.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No products found" });
+    }
+
+    res.status(200).json({ success: true, products });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 // Get a product by ID
 router.get(`/:id`, async (req, res) => {
   try {
