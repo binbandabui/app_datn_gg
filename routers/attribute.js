@@ -67,4 +67,33 @@ router.put("/:id", async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 });
+router.get("/", async (req, res) => {
+  const { productId } = req.query; // Assuming productId is passed as a query parameter
+
+  try {
+    if (!productId) {
+      return res.status(400).json({ message: "Product ID is required" });
+    }
+
+    // Find all attributes related to the productId
+    const attributes = await Attribute.find({ productId });
+
+    if (attributes.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No attributes found for this product" });
+    }
+
+    // Group all attributes by productId (optional, depends on what grouping means in your case)
+    const result = {
+      productId,
+      attributes,
+    };
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
 module.exports = router;
