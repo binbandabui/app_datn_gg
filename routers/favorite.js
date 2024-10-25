@@ -71,7 +71,7 @@ router.get("/:id", async (req, res) => {
   try {
     const favorite = await Favorite.findById(req.params.id)
       .populate("userId", "email") // Populate the 'userId' with 'email'
-      .populate("productId", "name"); // Populate the 'productId' with 'name'
+      .populate("productId", "name image"); // Populate the 'productId' with 'name'
 
     if (!favorite) {
       return res
@@ -86,36 +86,29 @@ router.get("/:id", async (req, res) => {
 });
 
 // PUT to update a favorite by ID
-router.put("/:id", async (req, res) => {
+router.put("/:id", authJwt(), async (req, res) => {
+  const userId = req.user.userId; // Get the userId from the authenticated request
+  const { productId } = req.body; // Destructure productId from the request body
+
   try {
-    const favorite = await Favorite.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    // Update the favorite item, ensuring only valid fields are updated
+    const favorite = await Favorite.findByIdAndUpdate(
+      req.params.id,
+      { userId, productId }, // Include userId and productId in the update
+      { new: true } // Return the updated document
+    );
+
     if (!favorite) {
       return res
         .status(404)
         .json({ success: false, message: "Favorite not found" });
     }
 
-    res.status(200).send(favorite);
+    res.status(200).send(favorite); // Send the updated favorite back
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("Error updating favorite:", error); // Log error for debugging
+    res.status(400).json({ success: false, message: error.message }); // Handle error response
   }
 });
-router.put("/edituser/:id", async (req, res) => {
-  try {
-    const favorite = await Favorite.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    if (!favorite) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Favorite not found" });
-    }
 
-    res.status(200).send(favorite);
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-});
 module.exports = router;
