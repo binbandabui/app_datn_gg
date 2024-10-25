@@ -4,13 +4,13 @@ const Product = require("../models/products");
 const express = require("express");
 
 const router = express.Router();
-router.get(`/`, async (req, res) => {
-  const attributeList = await Attribute.find();
-  if (!attributeList) {
-    res.status(404).json({ success: false });
-  }
-  res.status(200).send(attributeList);
-});
+// router.get(`/`, async (req, res) => {
+//   const attributeList = await Attribute.find();
+//   if (!attributeList) {
+//     res.status(404).json({ success: false });
+//   }
+//   res.status(200).send(attributeList);
+// });
 router.post("/", async (req, res) => {
   const productId = await Product.findById(req.body.productId);
   if (!productId) {
