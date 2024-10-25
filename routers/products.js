@@ -135,6 +135,7 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
       description: req.body.description,
       image: `${basePath}${fileName}`,
       category: req.body.category,
+      isFeatured: req.body.isFeatured,
     });
 
     product = await product.save();
@@ -222,6 +223,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         description: req.body.description,
         category: req.body.category,
         image: imagePath,
+        isFeatured: req.body.isFeatured,
       },
       { new: true }
     );

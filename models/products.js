@@ -24,6 +24,10 @@ const productSchema = mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  isFeatured: {
+    type: Boolean,
+    default: false,
+  },
 });
 productSchema.virtual("id").get(function () {
   return this._id.toHexString();
