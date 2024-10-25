@@ -4,13 +4,13 @@ const Product = require("../models/products");
 const express = require("express");
 
 const router = express.Router();
-// router.get(`/`, async (req, res) => {
-//   const attributeList = await Attribute.find();
-//   if (!attributeList) {
-//     res.status(404).json({ success: false });
-//   }
-//   res.status(200).send(attributeList);
-// });
+router.get(`/`, async (req, res) => {
+  const attributeList = await Attribute.find();
+  if (!attributeList) {
+    res.status(404).json({ success: false });
+  }
+  res.status(200).send(attributeList);
+});
 router.post("/", async (req, res) => {
   const productId = await Product.findById(req.body.productId);
   if (!productId) {
@@ -67,12 +67,14 @@ router.put("/:id", async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 });
-router.get("/", async (req, res) => {
-  const { productId } = req.query; // Assuming productId is passed as a query parameter
+router.get(`/by-product/:productId`, async (req, res) => {
+  const { productId } = req.params;
 
   try {
-    if (!productId) {
-      return res.status(400).json({ message: "Product ID is required" });
+    // Check if the product exists
+    const productExists = await Product.findById(productId);
+    if (!productExists) {
+      return res.status(404).json({ message: "Invalid productId" });
     }
 
     // Find all attributes related to the productId
@@ -84,7 +86,7 @@ router.get("/", async (req, res) => {
         .json({ message: "No attributes found for this product" });
     }
 
-    // Group all attributes by productId (optional, depends on what grouping means in your case)
+    // Response with the productId and the list of attributes
     const result = {
       productId,
       attributes,
