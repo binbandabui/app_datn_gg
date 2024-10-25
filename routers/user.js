@@ -8,6 +8,7 @@ const multer = require("multer");
 const router = express.Router();
 const nodemailer = require("nodemailer");
 const crypto = require("crypto"); // Import crypto for generating OTPs
+const authJwt = require("../helper/jwt");
 
 // Mapping of file types for upload validation
 const FILE_TYPES_MAP = {
@@ -38,6 +39,16 @@ const uploadOptions = multer({
   storage: storage,
 });
 ////////////////////////////////
+
+router.get(`/`, authJwt(), async (req, res) => {
+  const userId = req.user.userId; // Get userId from JWT payload
+  console.log(userId);
+  const userList = await User.find();
+  if (!userList) {
+    return res.status(404).json({ success: false });
+  }
+  res.status(200).json(userList);
+});
 router.get(`/:id`, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) {
@@ -45,14 +56,6 @@ router.get(`/:id`, async (req, res) => {
   }
   res.status(200).json(user);
 });
-router.get(`/`, async (req, res) => {
-  const userList = await User.find();
-  if (!userList) {
-    return res.status(404).json({ success: false });
-  }
-  res.status(200).json(userList);
-});
-
 router.post("/", async (req, res) => {
   try {
     const { password } = req.body;
@@ -95,7 +98,7 @@ router.post("/login", async (req, res) => {
         secret,
         { expiresIn: "1d" }
       );
-      res.status(200).send({ user: user.email, token: token });
+      res.status(200).send({ user: user.email, token: token, userId: user.id });
     } else {
       res.status(400).json({ message: "Invalid password" });
     }
@@ -106,8 +109,16 @@ router.post("/login", async (req, res) => {
 // Signin user
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, phone, isAdmin, image, paymentInfo } =
-      req.body;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      isAdmin,
+      image,
+      paymentInfo,
+      gender,
+    } = req.body;
 
     // Input validation
     if (!name || name.trim().length === 0) {
@@ -146,6 +157,7 @@ router.post("/register", async (req, res) => {
       email,
       passwordHash: bcrypt.hashSync(password, 10),
       phone,
+      gender,
       isAdmin: isAdmin || false, // Default to false if not provided
       image: image || "", // Default to empty string if not provided
       paymentInfo: paymentInfo || "", // Default to empty string
@@ -308,9 +320,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
 router.put(`/edituser/:id`, uploadOptions.single("image"), async (req, res) => {
   // Validate ObjectId
   if (!mongoose.isValidObjectId(req.params.id)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid category ID" });
+    return res.status(400).json({ success: false, message: "Invalid User ID" });
   }
 
   try {
@@ -319,7 +329,7 @@ router.put(`/edituser/:id`, uploadOptions.single("image"), async (req, res) => {
     if (!category) {
       return res
         .status(404)
-        .json({ success: false, message: "Category not found" });
+        .json({ success: false, message: "User not found" });
     }
 
     // Process the uploaded file, if any
@@ -356,6 +366,43 @@ router.put(`/edituser/:id`, uploadOptions.single("image"), async (req, res) => {
   } catch (error) {
     console.error("Error updating category: ", error);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+router.post("/change-password", authJwt(), async (req, res) => {
+  const userId = req.user.userId; // Get userId from JWT payload
+
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Input validation (you can expand this as needed)
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Current and new passwords are required." });
+    }
+
+    // Find the user by userId
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Check if the current password matches
+    const isMatch = bcrypt.compareSync(currentPassword, user.passwordHash); // Assuming passwordHash holds the hashed password
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ message: "Current password is incorrect." });
+    }
+
+    // Hash the new password before saving
+    user.passwordHash = bcrypt.hashSync(newPassword, 10); // Use 10 as the salt rounds (you can adjust this as needed)
+    await user.save(); // Save the updated user
+
+    return res.status(200).json({ message: "Password changed successfully." });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return res.status(500).json({ message: "An error occurred." });
   }
 });
 

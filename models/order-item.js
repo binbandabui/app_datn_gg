@@ -18,12 +18,6 @@ const orderItemSchema = mongoose.Schema({
     ref: "Attribute",
     required: true,
   },
-  product: {
-    // Add this field to reference the Product
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
-    required: true,
-  },
 });
 const OrderItem = mongoose.model("OrderItem", orderItemSchema);
 module.exports = { OrderItem };

@@ -3,6 +3,7 @@ const express = require("express");
 const User = require("../models/user");
 const Product = require("../models/products");
 const router = express.Router();
+const authJwt = require("../helper/jwt");
 
 // GET all favorite entries
 router.get(`/`, async (req, res) => {
@@ -24,9 +25,9 @@ router.get(`/`, async (req, res) => {
 });
 
 // POST to create a new favorite entry
-router.post(`/`, async (req, res) => {
+router.post(`/`, authJwt(), async (req, res) => {
   try {
-    const userId = await User.findById(req.body.userId);
+    const userId = await req.user.userId;
     if (!userId) {
       return res.status(404).send("Invalid user");
     }
@@ -38,7 +39,7 @@ router.post(`/`, async (req, res) => {
 
     const favorite = new Favorite({
       dateOrdered: req.body.dateOrdered,
-      userId: req.body.userId, // Pass only IDs here
+      userId: userId, // Pass only IDs here
       productId: req.body.productId,
     });
 

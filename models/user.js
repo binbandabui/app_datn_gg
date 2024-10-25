@@ -20,6 +20,10 @@ const userSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  gender: {
+    type: String,
+    default: "Other",
+  },
   image: {
     type: String,
     default: "",

@@ -3,7 +3,7 @@ const { OrderItem } = require("../models/order-item"); // Ensure this import is 
 const Attribute = require("../models/attribute");
 const express = require("express");
 const Restaurant = require("../models/restaurant");
-
+const authJwt = require("../helper/jwt");
 const router = express.Router();
 //control
 // router.get(`/`, async (req, res) => {
@@ -113,7 +113,7 @@ router.get(`/`, async (req, res) => {
   }
   res.send(orderList);
 });
-router.post(`/`, async (req, res) => {
+router.post(`/`, authJwt(), async (req, res) => {
   try {
     // Log the incoming request body for debugging
     console.log("Request Body:", req.body);
@@ -125,6 +125,9 @@ router.post(`/`, async (req, res) => {
         const attribute = await Attribute.findById(
           orderItem.attribute
         ).populate("productId"); // Populate the productId
+
+        // Log the retrieved attribute for debugging
+        console.log("Retrieved Attribute:", attribute);
 
         if (!attribute) {
           throw new Error(
@@ -138,7 +141,7 @@ router.post(`/`, async (req, res) => {
           drink: orderItem.drink,
           excluded: orderItem.excluded,
           attribute: orderItem.attribute, // Use the attribute ID from orderItem
-          product: attribute.productId, // Set the product ID from the attribute
+          product: attribute.productId, // Set the product ID from the populated attribute
         });
 
         newOrderItem = await newOrderItem.save();
@@ -156,19 +159,20 @@ router.post(`/`, async (req, res) => {
         return totalPrice;
       })
     );
+
     const restaurant = await Restaurant.findById(req.body.restaurant);
     if (!restaurant) {
       throw new Error("Invalid Restaurant ID");
     }
     const total = totalPrices.reduce((a, b) => a + b, 0);
-
+    const userId = req.user.userId;
     // Create and save the new order
     let order = new Order({
       orderItems: orderItemIds,
       shippingAddress1: req.body.shippingAddress1,
       status: req.body.status,
       totalPrice: total, // Use the calculated total price
-      user: req.body.user,
+      user: userId,
       restaurant: restaurant, // Use the restaurant ID from the request body
       transactionId: req.body.transactionId,
     });
@@ -184,18 +188,35 @@ router.post(`/`, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 router.get(`/:id`, async (req, res) => {
-  const order = await Order.findById(req.params.id)
-    .populate("user", "name")
-    .populate({
-      path: "orderItems",
-      populate: { path: "product", populate: "category" },
-    });
-  if (!order) {
-    return res.status(404).json({ success: false });
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate("user", "name") // Populate user with only the name
+      .populate({
+        path: "orderItems",
+        populate: {
+          path: "attribute", // Populate the attribute field
+          populate: {
+            path: "productId", // Populate the productId from the attribute
+            populate: "category", // Optionally populate the category from the product
+          },
+        },
+      });
+
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+
+    res.send(order);
+  } catch (error) {
+    console.error("Error retrieving order:", error); // Log error for debugging
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.send(order);
 });
+
 router.put("/:id", async (req, res) => {
   const { status } = req.body; // Destructure the status from the request body
 
