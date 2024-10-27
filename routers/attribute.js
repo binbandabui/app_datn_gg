@@ -77,16 +77,19 @@ router.get(`/by-product/:productId`, async (req, res) => {
       return res.status(404).json({ message: "Invalid productId" });
     }
 
-    // Find all attributes related to the productId
-    const attributes = await Attribute.find({ productId });
+    // Find all active attributes related to the productId
+    const attributes = await Attribute.find({
+      productId,
+      isActive: true, // Add condition to filter only active attributes
+    });
 
     if (attributes.length === 0) {
       return res
         .status(404)
-        .json({ message: "No attributes found for this product" });
+        .json({ message: "No active attributes found for this product" });
     }
 
-    // Response with the productId and the list of attributes
+    // Response with the productId and the list of active attributes
     const result = {
       productId,
       attributes,
@@ -97,7 +100,8 @@ router.get(`/by-product/:productId`, async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
-router.post("/add/attribute", async (req, res) => {
+
+router.post("/add/multiple", async (req, res) => {
   const { productId, attributes } = req.body; // Expecting { productId, attributes: [{ size, price }, ...] }
 
   if (!productId || !Array.isArray(attributes) || attributes.length === 0) {
@@ -120,6 +124,7 @@ router.post("/add/attribute", async (req, res) => {
         size: attribute.size,
         price: attribute.price,
         productId: productId,
+        isActive: attribute.isActive,
       });
       const savedAttribute = await newAttribute.save();
       savedAttributes.push(savedAttribute);

@@ -10,7 +10,10 @@ const attributeSchema = mongoose.Schema({
     required: true,
     default: 0,
   },
-
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",

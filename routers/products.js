@@ -340,34 +340,22 @@ router.get("/get/featured/:count", async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-router.get("/get/active/:count", async (req, res) => {
-  const count = req.params.count ? parseInt(req.params.count) : 0;
-
+router.get("/get/active/", async (req, res) => {
   try {
-    const products = await Product.find({ isActive: true }).limit(count);
-    if (!products.length) {
-      return res
-        .status(500)
-        .json({ success: false, message: "No featured products found" });
-    }
-    res.status(200).send(products);
+    const verifiedUsers = await Product.find({ isActive: true });
+    res.send(verifiedUsers);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching verified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-router.get("/get/un_active/:count", async (req, res) => {
-  const count = req.params.count ? parseInt(req.params.count) : 0;
-
+router.get("/get/un_active", async (req, res) => {
   try {
-    const products = await Product.find({ isActive: false }).limit(count);
-    if (!products.length) {
-      return res
-        .status(500)
-        .json({ success: false, message: "No featured products found" });
-    }
-    res.status(200).send(products);
+    const verifiedUsers = await Product.find({ isActive: false });
+    res.send(verifiedUsers);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching verified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 // Upload multiple images for a product
