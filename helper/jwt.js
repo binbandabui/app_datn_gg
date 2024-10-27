@@ -15,6 +15,7 @@ function authJwt() {
       pattern: /^\/api\/v1\/products(\/|$)/,
       methods: ["GET"],
     },
+
     {
       pattern: /^\/api\/v1\/category(\/|$)/,
       methods: ["GET"],

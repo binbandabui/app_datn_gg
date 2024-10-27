@@ -19,7 +19,14 @@ const productSchema = mongoose.Schema({
     ref: "Category",
     required: true,
   },
-
+  attributes: [
+    // Change 'attribute' to 'attributes' to indicate an array of IDs
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Attribute",
+      required: true,
+    },
+  ],
   dateCreated: {
     type: Date,
     default: Date.now,
@@ -27,6 +34,10 @@ const productSchema = mongoose.Schema({
   isFeatured: {
     type: Boolean,
     default: false,
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
   },
 });
 productSchema.virtual("id").get(function () {

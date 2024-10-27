@@ -89,6 +89,9 @@ router.post("/login", async (req, res) => {
     if (!user.isVerified) {
       return res.status(400).json({ message: "User not verified" });
     }
+    if (!user.isActive) {
+      return res.status(400).json({ message: "User not active" });
+    }
     if (bcrypt.compareSync(req.body.password, user.passwordHash)) {
       const token = jwt.sign(
         {
@@ -245,10 +248,12 @@ router.post("/verify-email", async (req, res) => {
 // Count user
 router.get("/get/count", async (req, res) => {
   try {
-    const userCount = await User.countDocuments();
+    // Count users where isActive is true
+    const userCount = await User.countDocuments({ isVerified: true });
     res.send({ userCount: userCount });
   } catch (error) {
-    res.status(404).json({ success: false, message: "No user found" });
+    console.error("Error fetching user count:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 // Delete user
@@ -495,36 +500,26 @@ router.post("/verify-otp", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-router.post("/reset-password", async (req, res) => {
-  const { email, newPassword } = req.body;
-
+// Get all verified users
+router.get("/get/verified", async (req, res) => {
   try {
-    // Validate input
-    if (!email || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "Email and new password are required" });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Hash the new password
-    const saltRounds = 10;
-    user.passwordHash = await bcrypt.hash(newPassword, saltRounds);
-
-    // Save the user with the new password
-    await user.save();
-
-    res.status(200).json({ message: "Password reset successfully" });
+    const verifiedUsers = await User.find({ isVerified: true });
+    res.send(verifiedUsers);
   } catch (error) {
-    console.error("Error resetting password:", error); // Log the error for debugging
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching verified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-//
+
+// Get all unverified users
+router.get("/get/unverified", async (req, res) => {
+  try {
+    const unverifiedUsers = await User.find({ isVerified: false });
+    res.send(unverifiedUsers);
+  } catch (error) {
+    console.error("Error fetching unverified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 
 module.exports = router;

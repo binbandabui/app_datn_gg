@@ -20,6 +20,10 @@ const restaurantSchema = mongoose.Schema({
     type: Array,
     default: [],
   },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
 });
 const Restaurant = mongoose.model("Restaurant", restaurantSchema);
 module.exports = Restaurant;

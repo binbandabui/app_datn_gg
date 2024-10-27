@@ -97,5 +97,38 @@ router.get(`/by-product/:productId`, async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
+router.post("/add/attribute", async (req, res) => {
+  const { productId, attributes } = req.body; // Expecting { productId, attributes: [{ size, price }, ...] }
 
+  if (!productId || !Array.isArray(attributes) || attributes.length === 0) {
+    return res.status(400).json({ success: false, message: "Invalid input" });
+  }
+
+  try {
+    // Optionally, you can check if the product exists
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    // Save each attribute
+    const savedAttributes = [];
+    for (const attribute of attributes) {
+      const newAttribute = new Attribute({
+        size: attribute.size,
+        price: attribute.price,
+        productId: productId,
+      });
+      const savedAttribute = await newAttribute.save();
+      savedAttributes.push(savedAttribute);
+    }
+
+    res.status(201).json({ success: true, attributes: savedAttributes });
+  } catch (error) {
+    console.error("Error saving attributes:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 module.exports = router;

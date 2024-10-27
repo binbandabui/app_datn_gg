@@ -50,6 +50,7 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
       address: req.body.address,
       review: req.body.review,
       image: `${basePath}${fileName}`,
+      isActive: req.body.isActive,
     });
     restaurant = await restaurant.save();
     res.send(restaurant);
@@ -84,6 +85,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         address: req.body.address || restaurant.address,
         review: req.body.review || restaurant.review,
         image: `${basePath}${fileName}`,
+        isActive: req.body.isActive || restaurant.isActive,
       },
       { new: true }
 
@@ -149,4 +151,22 @@ router.put(
     res.send(restaurant);
   }
 );
+router.get("/get/active/", async (req, res) => {
+  try {
+    const verifiedUsers = await Restaurant.find({ isActive: true });
+    res.send(verifiedUsers);
+  } catch (error) {
+    console.error("Error fetching verified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+router.get("/get/un_active/", async (req, res) => {
+  try {
+    const verifiedUsers = await Restaurant.find({ isActive: false });
+    res.send(verifiedUsers);
+  } catch (error) {
+    console.error("Error fetching verified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 module.exports = router;
