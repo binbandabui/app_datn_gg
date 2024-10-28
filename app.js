@@ -7,6 +7,12 @@ require("dotenv").config();
 // Connect string
 const api = process.env.API_URL;
 const atlas = process.env.CONNECTION_STRING;
+
+//cloud
+const cloudName = process.env.CloudName;
+const apikey = process.env.Apikey;
+const apisecret = process.env.Apisecret;
+
 const morgan = require("morgan");
 const mongoose = require("mongoose");
 const productRouter = require("./routers/products");
@@ -34,9 +40,9 @@ app.use(errorHandler);
 app.use("/public/uploads", express.static(__dirname + "/public/uploads"));
 //Cloud image
 cloudinary.config({
-  cloud_name: "dtjfbyjod", // Replace with your Cloud Name
-  api_key: "524635429587295", // Replace with your API Key
-  api_secret: "h-pB0GQB-aalTkMPhlbzOLuNCQY", // Replace with your API Secret
+  cloud_name: cloudName, // Replace with your Cloud Name
+  api_key: apikey, // Replace with your API Key
+  api_secret: apisecret, // Replace with your API Secret
 });
 //Router
 app.use(`${api}/products`, productRouter);
