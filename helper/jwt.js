@@ -70,6 +70,16 @@ function authJwt() {
       pattern: /^\/api\/v1\/users\/login(\/|$)/,
       methods: ["POST"],
     },
+    //Order
+    {
+      pattern: /^\/api\/v1\/orders(\/|$)/,
+      methods: ["POST"],
+    },
+    //Order
+    {
+      pattern: /^\/api\/v1\/orders(\/|$)/,
+      methods: ["GET"],
+    },
   ];
 
   return (req, res, next) => {

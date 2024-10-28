@@ -8,7 +8,7 @@ const orderSchema = new mongoose.Schema({
       required: true,
     },
   ],
-  shippingAddress1: {
+  shippingAddress: {
     type: String,
     required: true,
   },
@@ -16,6 +16,11 @@ const orderSchema = new mongoose.Schema({
   status: {
     type: String,
     default: "Pending",
+  },
+  paymentMethob: {
+    type: String,
+    required: true,
+    enum: ["Credit Card", "PayPal", "Bank Transfer", "Cash"],
   },
   totalPrice: {
     type: Number,

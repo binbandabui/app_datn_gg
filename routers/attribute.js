@@ -101,6 +101,41 @@ router.get(`/by-product/:productId`, async (req, res) => {
   }
 });
 
+// router.post("/add/multiple", async (req, res) => {
+//   const { productId, attributes } = req.body; // Expecting { productId, attributes: [{ size, price }, ...] }
+
+//   if (!productId || !Array.isArray(attributes) || attributes.length === 0) {
+//     return res.status(400).json({ success: false, message: "Invalid input" });
+//   }
+
+//   try {
+//     // Optionally, you can check if the product exists
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Product not found" });
+//     }
+
+//     // Save each attribute
+//     const savedAttributes = [];
+//     for (const attribute of attributes) {
+//       const newAttribute = new Attribute({
+//         size: attribute.size,
+//         price: attribute.price,
+//         productId: productId,
+//         isActive: attribute.isActive,
+//       });
+//       const savedAttribute = await newAttribute.save();
+//       savedAttributes.push(savedAttribute);
+//     }
+
+//     res.status(201).json({ success: true, attributes: savedAttributes });
+//   } catch (error) {
+//     console.error("Error saving attributes:", error);
+//     res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// });
 router.post("/add/multiple", async (req, res) => {
   const { productId, attributes } = req.body; // Expecting { productId, attributes: [{ size, price }, ...] }
 
@@ -109,15 +144,15 @@ router.post("/add/multiple", async (req, res) => {
   }
 
   try {
-    // Optionally, you can check if the product exists
-    const product = await Product.findById(productId);
+    // Retrieve the product and check if it exists
+    const product = await Product.findById(productId).populate("attributes");
     if (!product) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
 
-    // Save each attribute
+    // Save each new attribute and collect their IDs
     const savedAttributes = [];
     for (const attribute of attributes) {
       const newAttribute = new Attribute({
@@ -130,10 +165,29 @@ router.post("/add/multiple", async (req, res) => {
       savedAttributes.push(savedAttribute);
     }
 
-    res.status(201).json({ success: true, attributes: savedAttributes });
+    // Update the product's attributes array with the new attribute IDs
+    product.attributes.push(...savedAttributes.map((attr) => attr._id));
+    await product.save();
+
+    // Respond with the updated product, including all attributes
+    res.status(201).json({
+      success: true,
+      product: {
+        _id: product._id,
+        name: product.name,
+        description: product.description,
+        image: product.image,
+        category: product.category,
+        attributes: await Product.findById(productId).populate("attributes"), // re-fetch product with updated attributes
+        isFeatured: product.isFeatured,
+        isActive: product.isActive,
+        dateCreated: product.dateCreated,
+      },
+    });
   } catch (error) {
     console.error("Error saving attributes:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
 module.exports = router;

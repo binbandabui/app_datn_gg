@@ -184,7 +184,7 @@ router.get(`/:id`, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate("category")
-      .populate("attributes");
+      .populate({ path: "attributes", match: { isActive: true } });
 
     if (!product) {
       return res
@@ -342,7 +342,10 @@ router.get("/get/featured/:count", async (req, res) => {
 });
 router.get("/get/active/", async (req, res) => {
   try {
-    const verifiedUsers = await Product.find({ isActive: true });
+    const verifiedUsers = await Product.find({ isActive: true }).populate({
+      path: "attributes",
+      match: { isActive: true },
+    });
     res.send(verifiedUsers);
   } catch (error) {
     console.error("Error fetching verified users:", error);

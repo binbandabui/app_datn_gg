@@ -4,7 +4,9 @@ const Attribute = require("../models/attribute");
 const express = require("express");
 const Restaurant = require("../models/restaurant");
 const authJwt = require("../helper/jwt");
+const User = require("../models/user");
 const router = express.Router();
+const { v4: uuidv4 } = require("uuid");
 //control
 // router.get(`/`, async (req, res) => {
 //   const orderList = await Order.find()
@@ -104,16 +106,40 @@ const router = express.Router();
 //   }
 //   res.send(userorderList);
 // });
+// router.get(`/`, async (req, res) => {
+//   const orderList = await Order.find()
+//     .populate("user", "name")
+//     .sort({ dateCreated: -1 });
+//   if (!orderList) {
+//     res.status(404).json({ success: false });
+//   }
+//   res.send(orderList);
+// }); // GET endpoint to retrieve orders based on status
 router.get(`/`, async (req, res) => {
-  const orderList = await Order.find()
-    .populate("user", "name")
-    .sort({ dateCreated: -1 });
-  if (!orderList) {
-    res.status(404).json({ success: false });
+  try {
+    // Get the status from query parameters
+    const { status } = req.query;
+
+    // Filter orders based on the status if provided
+    const filter = status ? { status } : {};
+
+    const orders = await Order.find(filter)
+      .populate("orderItems")
+      .populate("user")
+      .populate("restaurant");
+
+    if (!orders) {
+      return res.status(404).json({ message: "No orders found" });
+    }
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ message: error.message });
   }
-  res.send(orderList);
 });
-router.post(`/`, authJwt(), async (req, res) => {
+
+router.post(`/`, async (req, res) => {
   try {
     // Log the incoming request body for debugging
     console.log("Request Body:", req.body);
@@ -164,17 +190,22 @@ router.post(`/`, authJwt(), async (req, res) => {
     if (!restaurant) {
       throw new Error("Invalid Restaurant ID");
     }
+    const userId = await User.findById(req.body.userId);
+    if (!userId) {
+      throw new Error("Invalid Restaurant ID");
+    }
     const total = totalPrices.reduce((a, b) => a + b, 0);
-    const userId = req.user.userId;
+    const transactionId = uuidv4();
     // Create and save the new order
     let order = new Order({
       orderItems: orderItemIds,
-      shippingAddress1: req.body.shippingAddress1,
+      shippingAddress: req.body.shippingAddress,
       status: req.body.status,
+      paymentMethob: req.body.paymentMethob,
       totalPrice: total, // Use the calculated total price
       user: userId,
       restaurant: restaurant, // Use the restaurant ID from the request body
-      transactionId: req.body.transactionId,
+      transactionId: transactionId,
     });
 
     order = await order.save();
@@ -191,6 +222,7 @@ router.post(`/`, authJwt(), async (req, res) => {
 
 router.get(`/:id`, async (req, res) => {
   try {
+    // Fetch the order by ID
     const order = await Order.findById(req.params.id)
       .populate("user", "name") // Populate user with only the name
       .populate({
@@ -209,6 +241,8 @@ router.get(`/:id`, async (req, res) => {
         .status(404)
         .json({ success: false, message: "Order not found" });
     }
+
+    // Check if the order's status matches the provided status
 
     res.send(order);
   } catch (error) {
@@ -247,6 +281,43 @@ router.put("/:id", async (req, res) => {
     res.status(200).send(order);
   } catch (error) {
     console.error("Error updating order status:", error); // Log error for debugging
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+router.get("/user/:userId", async (req, res) => {
+  try {
+    // Get the status from query parameters
+    const { status } = req.query;
+
+    // Create a filter object based on the status if provided
+    const filter = { user: req.params.userId }; // Always filter by userId
+    if (status) {
+      filter.status = status; // Add status to filter if provided
+    }
+
+    // Find orders with the specified filter and populate relevant fields
+    const orders = await Order.find(filter)
+      .populate({
+        path: "orderItems",
+        populate: [
+          {
+            path: "attribute",
+            populate: {
+              path: "productId",
+              populate: { path: "category" },
+            },
+          },
+        ],
+      })
+      .populate("user", "name");
+
+    if (!orders || orders.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No orders found for this user." });
+    }
+    res.json(orders);
+  } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
