@@ -89,7 +89,9 @@ router.post("/login", async (req, res) => {
     if (!user.isVerified) {
       return res.status(400).json({ message: "User not verified" });
     }
-
+    if (!user.isActive) {
+      return res.status(400).json({ message: "User not active" });
+    }
     if (bcrypt.compareSync(req.body.password, user.passwordHash)) {
       const token = jwt.sign(
         {
@@ -301,6 +303,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         image: imagePath,
         isAdmin: req.body.isAdmin || category.isAdmin,
         isVerified: req.body.isVerified || category.isVerified,
+        isActive: req.body.isActive || category.isActive,
       },
       { new: true }
     );
@@ -519,5 +522,22 @@ router.get("/get/unverified", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
+router.get("/get/active/", async (req, res) => {
+  try {
+    const verifiedUsers = await User.find({ isActive: true });
+    res.send(verifiedUsers);
+  } catch (error) {
+    console.error("Error fetching verified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+router.get("/get/un_active/", async (req, res) => {
+  try {
+    const verifiedUsers = await User.find({ isActive: false });
+    res.send(verifiedUsers);
+  } catch (error) {
+    console.error("Error fetching verified users:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 module.exports = router;
