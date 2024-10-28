@@ -48,10 +48,10 @@ router.get("/:id", async (req, res) => {
 });
 router.put("/:id", async (req, res) => {
   try {
-    const productId = await Product.findById(req.body.productId);
-    if (!productId) {
-      return res.status(404).send("Invalid productId");
-    }
+    // const productId = await Product.findById(req.body.productId);
+    // if (!productId) {
+    //   return res.status(404).send("Invalid productId");
+    // }
     const attribute = await Attribute.findByIdAndUpdate(
       req.params.id,
       req.body,
