@@ -1,33 +1,51 @@
 const Restaurant = require("../models/restaurant");
 const express = require("express");
-const router = express.Router();
+
 const mongoose = require("mongoose");
 const multer = require("multer");
-const FILE_TYPES_MAP = {
-  "image/png": "png",
-  "image/jpeg": "jpeg",
-  "image/jpg": "jpg",
-};
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const isValid = FILE_TYPES_MAP[file.mimetype];
-    let uploadError = new Error("Invalid image type");
-    if (isValid) {
-      uploadError = null;
-    }
-    cb(uploadError, "public/uploads");
-  },
-  filename: function (req, file, cb) {
-    const fileName = file.originalname.split(" ").join("-");
-    const extension = FILE_TYPES_MAP[file.mimetype];
-    cb(null, `${fileName}-${Date.now()}.${extension}`);
-  },
+// const FILE_TYPES_MAP = {
+//   "image/png": "png",
+//   "image/jpeg": "jpeg",
+//   "image/jpg": "jpg",
+// };
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     const isValid = FILE_TYPES_MAP[file.mimetype];
+//     let uploadError = new Error("Invalid image type");
+//     if (isValid) {
+//       uploadError = null;
+//     }
+//     cb(uploadError, "public/uploads");
+//   },
+//   filename: function (req, file, cb) {
+//     const fileName = file.originalname.split(" ").join("-");
+//     const extension = FILE_TYPES_MAP[file.mimetype];
+//     cb(null, `${fileName}-${Date.now()}.${extension}`);
+//   },
+// });
+// const uploadOptions = multer({
+//   limits: { fileSize: 1024 * 1024 * 5 },
+//   storage: storage,
+// });
+
+//Cloud
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dtjfbyjod", // Replace with your Cloud Name
+  api_key: "524635429587295", // Replace with your API Key
+  api_secret: "h-pB0GQB-aalTkMPhlbzOLuNCQY", // Replace with your API Secret
 });
-const uploadOptions = multer({
-  limits: { fileSize: 1024 * 1024 * 5 },
-  storage: storage,
+const router = express.Router();
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "branch", // Specify the folder name in Cloudinary
+    allowed_formats: ["jpg", "png", "jpeg"], // Allowed formats
+  },
 });
 
+const uploadOptions = multer({ storage: storage });
 router.get(`/`, async (req, res) => {
   const restaurantList = await Restaurant.find();
   if (!restaurantList) {
@@ -42,14 +60,13 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
       console.log("No file received");
       return res.status(400).send("No image file provided");
     }
-    console.log("File uploaded successfully:", file);
-    const fileName = file.filename;
-    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-    let restaurant = new Restaurant({
+    const imageUrl = file.path; // This is the URL returned by Cloudinary
+
+    const restaurant = new Category({
       name: req.body.name,
       address: req.body.address,
       review: req.body.review,
-      image: `${basePath}${fileName}`,
+      image: imageUrl,
       isActive: req.body.isActive,
     });
     restaurant = await restaurant.save();
@@ -75,16 +92,14 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
       console.log("No file received");
       return res.status(400).send("No image file provided");
     }
-    console.log("File uploaded successfully:", file);
-    const fileName = file.filename;
-    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+    const imageUrl = file.path; // This is the URL returned by Cloudinary
     const restaurant = await Restaurant.findByIdAndUpdate(
       req.params.id,
       {
         name: req.body.name || restaurant.name,
         address: req.body.address || restaurant.address,
         review: req.body.review || restaurant.review,
-        image: `${basePath}${fileName}`,
+        image: imageUrl,
         isActive: req.body.isActive || restaurant.isActive,
       },
       { new: true }
@@ -124,33 +139,44 @@ router.put(
   "/gallery-images/:id",
   uploadOptions.array("gallery", 10),
   async (req, res) => {
+    // Validate the restaurant ID
     if (!mongoose.isValidObjectId(req.params.id)) {
       return res.status(400).send("Invalid Restaurant Id");
     }
+
     const files = req.files;
     let imagesPaths = [];
-    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
-    if (files) {
-      files.map((file) => {
-        imagesPaths.push(`${basePath}${file.filename}`);
-      });
+    // Check if files are received and map them to image URLs from Cloudinary
+    if (files && files.length > 0) {
+      imagesPaths = files.map((file) => file.path); // Cloudinary returns the path directly
     }
 
-    const restaurant = await Restaurant.findByIdAndUpdate(
-      req.params.id,
-      {
-        gallery: imagesPaths,
-      },
-      { new: true }
-    );
+    try {
+      // Find and update the restaurant's gallery images
+      const restaurant = await Restaurant.findByIdAndUpdate(
+        req.params.id,
+        { gallery: imagesPaths }, // Update the gallery with new image URLs
+        { new: true } // Return the updated document
+      );
 
-    if (!restaurant)
-      return res.status(500).send("the gallery cannot be updated!");
+      // Check if the restaurant was found and updated
+      if (!restaurant) {
+        return res.status(404).send("Restaurant not found");
+      }
 
-    res.send(restaurant);
+      // Respond with the updated restaurant data
+      res.status(200).json(restaurant);
+    } catch (error) {
+      // Handle errors and respond with an appropriate message
+      console.error("Error updating gallery images: ", error);
+      res
+        .status(500)
+        .send("An error occurred while updating the gallery images");
+    }
   }
 );
+
 router.get("/get/active/", async (req, res) => {
   try {
     const verifiedUsers = await Restaurant.find({ isActive: true });

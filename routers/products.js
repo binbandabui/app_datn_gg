@@ -1,39 +1,55 @@
 const Product = require("../models/products");
 const Category = require("../models/category");
 const express = require("express");
-const router = express.Router();
+
 const mongoose = require("mongoose");
 const multer = require("multer");
 const Attribute = require("../models/attribute");
-// Mapping of file types for upload validation
-const FILE_TYPES_MAP = {
-  "image/png": "png",
-  "image/jpeg": "jpeg",
-  "image/jpg": "jpg",
-};
+// // Mapping of file types for upload validation
+// const FILE_TYPES_MAP = {
+//   "image/png": "png",
+//   "image/jpeg": "jpeg",
+//   "image/jpg": "jpg",
+// };
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const isValid = FILE_TYPES_MAP[file.mimetype];
-    let uploadError = new Error("Invalid image type");
-    if (isValid) {
-      uploadError = null;
-    }
-    cb(uploadError, "public/uploads");
-  },
-  filename: function (req, file, cb) {
-    const fileName = file.originalname.split(" ").join("-");
-    const extension = FILE_TYPES_MAP[file.mimetype];
-    cb(null, `${fileName}-${Date.now()}.${extension}`);
+// // Multer storage configuration
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     const isValid = FILE_TYPES_MAP[file.mimetype];
+//     let uploadError = new Error("Invalid image type");
+//     if (isValid) {
+//       uploadError = null;
+//     }
+//     cb(uploadError, "public/uploads");
+//   },
+//   filename: function (req, file, cb) {
+//     const fileName = file.originalname.split(" ").join("-");
+//     const extension = FILE_TYPES_MAP[file.mimetype];
+//     cb(null, `${fileName}-${Date.now()}.${extension}`);
+//   },
+// });
+
+// const uploadOptions = multer({
+//   limits: { fileSize: 1024 * 1024 * 5 },
+//   storage: storage,
+// });
+//Cloud
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dtjfbyjod", // Replace with your Cloud Name
+  api_key: "524635429587295", // Replace with your API Key
+  api_secret: "h-pB0GQB-aalTkMPhlbzOLuNCQY", // Replace with your API Secret
+});
+const router = express.Router();
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "product", // Specify the folder name in Cloudinary
+    allowed_formats: ["jpg", "png", "jpeg"], // Allowed formats
   },
 });
-
-const uploadOptions = multer({
-  limits: { fileSize: 1024 * 1024 * 5 },
-  storage: storage,
-});
-
+const uploadOptions = multer({ storage: storage });
 // Get all products with optional filtering by category
 router.get(`/`, async (req, res) => {
   let filter = {};
@@ -128,15 +144,13 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
     if (!file) {
       return res.status(400).send("No image file provided");
     }
-
-    const fileName = file.filename;
-    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+    const imageUrl = file.path; // This is the URL returned by Cloudinary
 
     // Create Product with attributes array
     let product = new Product({
       name: req.body.name,
       description: req.body.description,
-      image: `${basePath}${fileName}`,
+      image: imageUrl,
       category: req.body.category,
       isFeatured: req.body.isFeatured,
       isActive: req.body.isActive,
@@ -251,13 +265,12 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
       attributeIds = req.body.attributes; // Update the attribute IDs to the new ones
     }
 
-    // Handle file upload for the image
-    let imagePath = currentProduct.image;
-    if (req.file) {
-      const fileName = req.file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-      imagePath = `${basePath}${fileName}`;
+    const file = req.file;
+    console.log("File received: ", file);
+    if (!file) {
+      return res.status(400).send("No image file provided");
     }
+    const imageUrl = file.path; // This is the URL returned by Cloudinary
 
     // Update the Product with conditional checks for each field
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -266,7 +279,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         name: req.body.name || currentProduct.name,
         description: req.body.description || currentProduct.description,
         category: category,
-        image: imagePath,
+        image: imageUrl,
         isFeatured:
           req.body.isFeatured !== undefined
             ? req.body.isFeatured
@@ -361,36 +374,5 @@ router.get("/get/un_active", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-// Upload multiple images for a product
-router.put(
-  "/gallery-images/:id",
-  uploadOptions.array("images", 10),
-  async (req, res) => {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).send("Invalid Product Id");
-    }
-    const files = req.files;
-    let imagesPaths = [];
-    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-
-    if (files) {
-      files.map((file) => {
-        imagesPaths.push(`${basePath}${file.filename}`);
-      });
-    }
-
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      {
-        images: imagesPaths,
-      },
-      { new: true }
-    );
-
-    if (!product) return res.status(500).send("the gallery cannot be updated!");
-
-    res.send(product);
-  }
-);
 
 module.exports = router;

@@ -5,40 +5,56 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const mongoose = require("mongoose");
 const multer = require("multer");
-const router = express.Router();
 const nodemailer = require("nodemailer");
 const crypto = require("crypto"); // Import crypto for generating OTPs
 const authJwt = require("../helper/jwt");
 
-// Mapping of file types for upload validation
-const FILE_TYPES_MAP = {
-  "image/png": "png",
-  "image/jpeg": "jpeg",
-  "image/jpg": "jpg",
-};
+// // Mapping of file types for upload validation
+// const FILE_TYPES_MAP = {
+//   "image/png": "png",
+//   "image/jpeg": "jpeg",
+//   "image/jpg": "jpg",
+// };
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const isValid = FILE_TYPES_MAP[file.mimetype];
-    let uploadError = new Error("Invalid image type");
-    if (isValid) {
-      uploadError = null;
-    }
-    cb(uploadError, "public/uploads");
-  },
-  filename: function (req, file, cb) {
-    const fileName = file.originalname.split(" ").join("-");
-    const extension = FILE_TYPES_MAP[file.mimetype];
-    cb(null, `${fileName}-${Date.now()}.${extension}`);
+// // Multer storage configuration
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     const isValid = FILE_TYPES_MAP[file.mimetype];
+//     let uploadError = new Error("Invalid image type");
+//     if (isValid) {
+//       uploadError = null;
+//     }
+//     cb(uploadError, "public/uploads");
+//   },
+//   filename: function (req, file, cb) {
+//     const fileName = file.originalname.split(" ").join("-");
+//     const extension = FILE_TYPES_MAP[file.mimetype];
+//     cb(null, `${fileName}-${Date.now()}.${extension}`);
+//   },
+// });
+
+// const uploadOptions = multer({
+//   limits: { fileSize: 1024 * 1024 * 5 },
+//   storage: storage,
+// });
+// ////////////////////////////////
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dtjfbyjod", // Replace with your Cloud Name
+  api_key: "524635429587295", // Replace with your API Key
+  api_secret: "h-pB0GQB-aalTkMPhlbzOLuNCQY", // Replace with your API Secret
+});
+const router = express.Router();
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "user", // Specify the folder name in Cloudinary
+    allowed_formats: ["jpg", "png", "jpeg"], // Allowed formats
   },
 });
 
-const uploadOptions = multer({
-  limits: { fileSize: 1024 * 1024 * 5 },
-  storage: storage,
-});
-////////////////////////////////
+const uploadOptions = multer({ storage: storage });
 
 router.get(`/`, authJwt(), async (req, res) => {
   const userId = req.user.userId; // Get userId from JWT payload
@@ -285,12 +301,11 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
 
     // Process the uploaded file, if any
     const file = req.file;
-    let imagePath = category.image; // Default to the existing image path
-    if (file) {
-      const fileName = file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-      imagePath = `${basePath}${fileName}`;
+    if (!file) {
+      return res.status(400).send("No image file provided");
     }
+
+    const imageUrl = file.path; // This is the URL returned by Cloudinary
 
     // Update the category
     category = await User.findByIdAndUpdate(
@@ -300,7 +315,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         phone: req.body.phone || category.phone,
         email: req.body.email || category.email,
         paymentInfo: req.body.paymentInfo || category.paymentInfo,
-        image: imagePath,
+        image: imageUrl,
         isAdmin: req.body.isAdmin || category.isAdmin,
         isVerified: req.body.isVerified || category.isVerified,
         isActive: req.body.isActive || category.isActive,
@@ -338,15 +353,12 @@ router.put(`/edituser/:id`, uploadOptions.single("image"), async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Process the uploaded file, if any
     const file = req.file;
-    let imagePath = category.image; // Default to the existing image path
-    if (file) {
-      const fileName = file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-      imagePath = `${basePath}${fileName}`;
+    if (!file) {
+      return res.status(400).send("No image file provided");
     }
 
+    const imageUrl = file.path; // This is the URL returned by Cloudinary
     // Update the category
     category = await User.findByIdAndUpdate(
       req.params.id,
@@ -355,7 +367,7 @@ router.put(`/edituser/:id`, uploadOptions.single("image"), async (req, res) => {
         phone: req.body.phone || category.phone,
         email: req.body.email || category.email,
         paymentInfo: req.body.paymentInfo || category.paymentInfo,
-        image: imagePath,
+        image: imageUrl,
       },
       { new: true }
     );

@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const cloudinary = require("cloudinary").v2;
 
 require("dotenv").config();
 // Connect string
@@ -31,6 +32,12 @@ app.use(morgan("tiny"));
 app.use(authJwt());
 app.use(errorHandler);
 app.use("/public/uploads", express.static(__dirname + "/public/uploads"));
+//Cloud image
+cloudinary.config({
+  cloud_name: "dtjfbyjod", // Replace with your Cloud Name
+  api_key: "524635429587295", // Replace with your API Key
+  api_secret: "h-pB0GQB-aalTkMPhlbzOLuNCQY", // Replace with your API Secret
+});
 //Router
 app.use(`${api}/products`, productRouter);
 app.use(`${api}/users`, userRouter);
