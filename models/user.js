@@ -58,7 +58,7 @@ const userSchema = mongoose.Schema({
   },
   cart: {
     type: Array,
-    default: {},
+    default: [],
   },
   otp: { type: String, default: null },
   otpExpiration: { type: Date, default: null },
