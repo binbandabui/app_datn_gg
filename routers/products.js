@@ -48,13 +48,11 @@ const storage = new CloudinaryStorage({
 const uploadOptions = multer({ storage: storage });
 // Get all products with optional filtering by category
 router.get(`/`, async (req, res) => {
-  let filter = {};
-  if (req.query.categories) {
-    filter = { category: req.query.categories.split(",") };
-  }
-
   try {
-    const productList = await Product.find(filter).populate("category");
+    const productList = await Product.find(filter).populate({
+      path: "category",
+      match: { isActive: true },
+    });
 
     if (!productList.length) {
       return res
@@ -133,6 +131,9 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
     if (!category) {
       return res.status(404).send("Invalid category");
     }
+    if (!category.isActive) {
+      return res.status(400).send("Category is not active");
+    }
 
     // Handle file upload
     const file = req.file;
@@ -140,6 +141,7 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
     if (!file) {
       return res.status(400).send("No image file provided");
     }
+
     const imageUrl = file.path; // This is the URL returned by Cloudinary
 
     // Create Product with attributes array
@@ -193,7 +195,7 @@ router.get("/search", async (req, res) => {
 router.get(`/:id`, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate("category")
+      .populate({ path: "category", match: { isActive: true } })
       .populate({ path: "attributes", match: { isActive: true } });
 
     if (!product) {
@@ -351,10 +353,15 @@ router.get("/get/featured/:count", async (req, res) => {
 });
 router.get("/get/active/", async (req, res) => {
   try {
-    const verifiedUsers = await Product.find({ isActive: true }).populate({
-      path: "attributes",
-      match: { isActive: true },
-    });
+    const verifiedUsers = await Product.find({ isActive: true })
+      .populate({
+        path: "attributes",
+        match: { isActive: true },
+      })
+      .populate({
+        path: "category",
+        match: { isActive: true },
+      });
     res.send(verifiedUsers);
   } catch (error) {
     console.error("Error fetching verified users:", error);

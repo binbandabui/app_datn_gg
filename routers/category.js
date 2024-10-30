@@ -69,6 +69,7 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
   const category = new Category({
     name: req.body.name,
     image: imageUrl,
+    isActive: req.body.isActive,
   });
 
   try {
