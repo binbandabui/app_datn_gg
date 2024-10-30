@@ -363,6 +363,7 @@ router.put(`/edituser/:id`, uploadOptions.single("image"), async (req, res) => {
         phone: req.body.phone || category.phone,
         email: req.body.email || category.email,
         paymentInfo: req.body.paymentInfo || category.paymentInfo,
+        cart: req.body.cart || category.cart,
         image: imageUrl,
       },
       { new: true }
@@ -548,5 +549,5 @@ router.get("/get/un_active/", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
+router.post("/cart", async (req, res) => {});
 module.exports = router;
