@@ -158,11 +158,8 @@ router.get(`/:id`, async (req, res) => {
         .status(404)
         .json({ success: false, message: "Category not found" });
     }
-    const cateActive = await Category.find({
-      isActive: true,
-    });
-    // Respond with the found category
-    res.status(200).json(cateActive);
+
+    res.status(200).json(category);
   } catch (error) {
     // Log the error and return a 500 status
     console.error("Error fetching category by ID: ", error);
