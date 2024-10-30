@@ -605,5 +605,25 @@ router.get("/get/un_active/", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-router.post("/cart", async (req, res) => {});
+// Example endpoint to clear user's cart
+
+// Assuming this is inside your user router
+router.delete("/:id/cart", async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.cart = []; // Clear the cart
+    await user.save();
+
+    res.status(200).json({ message: "Cart cleared successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
 module.exports = router;
