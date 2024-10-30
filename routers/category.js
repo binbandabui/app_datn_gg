@@ -51,10 +51,11 @@ const storage = new CloudinaryStorage({
 
 const uploadOptions = multer({ storage: storage });
 router.get(`/`, async (req, res) => {
-  const categoryList = await Category.find();
+  const categoryList = await Category.find({ isActive: true });
   if (!categoryList) {
     res.status(404).json({ success: false });
   }
+
   res.status(200).send(categoryList);
 });
 router.post(`/`, uploadOptions.single("image"), async (req, res) => {
@@ -121,6 +122,7 @@ router.delete(`/:id`, async (req, res) => {
         {
           name: req.body.name || category.name,
           image: imagePath,
+          isActive: req.body.isActive || category.isActive,
         },
         { new: true }
       );
@@ -155,9 +157,11 @@ router.get(`/:id`, async (req, res) => {
         .status(404)
         .json({ success: false, message: "Category not found" });
     }
-
+    const cateActive = await Category.find({
+      isActive: true,
+    });
     // Respond with the found category
-    res.status(200).json(category);
+    res.status(200).json(cateActive);
   } catch (error) {
     // Log the error and return a 500 status
     console.error("Error fetching category by ID: ", error);
