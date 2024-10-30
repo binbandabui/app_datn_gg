@@ -337,7 +337,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
 router.put(
   `/edituser/:id`,
   authJwt(),
-
+  uploadOptions.single("image"),
   async (req, res) => {
     // Validate ObjectId
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -346,52 +346,60 @@ router.put(
         .json({ success: false, message: "Invalid User ID" });
     }
 
+    console.log("Request Body:", req.body);
+    console.log("Uploaded File:", req.file);
+
     try {
-      // Find the category by ID
-      let category = await User.findById(req.params.id);
-      if (!category) {
+      // Find the user by ID
+      let user = await User.findById(req.params.id);
+      if (!user) {
         return res
           .status(404)
           .json({ success: false, message: "User not found" });
       }
 
-      // const file = req.file;
-      // if (!file) {
-      //   return res.status(400).send("No image file provided");
-      // }
+      const file = req.file;
+      if (!file) {
+        console.log("No image file provided");
+      }
 
-      // const imageUrl = file.path; // This is the URL returned by Cloudinary
-      // Update the category
-      category = await User.findByIdAndUpdate(
+      const imageUrl = file ? file.path : user.image; // Use the existing image if no new image provided
+
+      // Update the user
+      user = await User.findByIdAndUpdate(
         req.params.id,
         {
-          name: req.body.name || category.name,
-          phone: req.body.phone || category.phone,
-          email: req.body.email || category.email,
-          paymentInfo: req.body.paymentInfo || category.paymentInfo,
-          cart: Array.isArray(req.body.cart)?.length ? req.body.cart : [],
-          // image: imageUrl,
+          name: req.body.name || user.name,
+          phone: req.body.phone || user.phone,
+          email: req.body.email || user.email,
+          paymentInfo: req.body.paymentInfo || user.paymentInfo,
+          cart: Array.isArray(req.body.cart) ? req.body.cart : [], // Ensure cart is an array
+          image: imageUrl,
         },
         { new: true }
       );
 
-      // If no category is found after update, return a 404 error
-      if (!category) {
+      // If no user is found after update, return a 404 error
+      if (!user) {
         return res
           .status(404)
-          .json({ success: false, message: "Category not found" });
+          .json({ success: false, message: "User not found after update" });
       }
 
-      // Send the updated category as a response
-      res.status(200).json(category);
+      // Send the updated user as a response
+      res.status(200).json(user);
     } catch (error) {
-      console.error("Error updating category: ", error);
+      console.error("Error updating user: ", error);
       res
         .status(500)
-        .json({ success: false, message: "Internal server error" });
+        .json({
+          success: false,
+          message: error.message || "Internal server error",
+        });
     }
   }
 );
+
 router.post("/change-password", authJwt(), async (req, res) => {
   const userId = req.user.userId; // Get userId from JWT payload
 
