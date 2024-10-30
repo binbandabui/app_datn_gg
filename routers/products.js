@@ -263,11 +263,11 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
       attributeIds = req.body.attributes; // Update the attribute IDs to the new ones
     }
 
-    const file = req.file;
     console.log("File received: ", file);
+    const file = req.file;
 
-    const imageUrl = file.path; // This is the URL returned by Cloudinary
-
+    // const imageUrl = file ? currentProduct.image; // This is the URL returned by Cloudinary
+    const imageUrl = file ? file.path : currentProduct.image;
     // Update the Product with conditional checks for each field
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
@@ -275,7 +275,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         name: req.body.name || currentProduct.name,
         description: req.body.description || currentProduct.description,
         category: category,
-        image: imageUrl || currentProduct.image,
+        image: imageUrl,
         isFeatured:
           req.body.isFeatured !== undefined
             ? req.body.isFeatured
