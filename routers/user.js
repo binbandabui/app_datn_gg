@@ -429,7 +429,7 @@ router.post(
         user,
       });
     } catch (error) {
-      console.error("Error updating user: ", error);
+      console.error("Error updating user: ", error); // Log error for debugging
       res.status(500).json({
         success: false,
         message: error.message || "Internal server error",
