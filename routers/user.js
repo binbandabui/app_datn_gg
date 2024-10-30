@@ -390,12 +390,50 @@ router.put(
       res.status(200).json(user);
     } catch (error) {
       console.error("Error updating user: ", error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: error.message || "Internal server error",
-        });
+      res.status(500).json({
+        success: false,
+        message: error.message || "Internal server error",
+      });
+    }
+  }
+);
+router.post(
+  `/userCart/:id`, // Using POST to update the user's cart
+  authJwt(),
+
+  async (req, res) => {
+    // Validate ObjectId
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid User ID" });
+    }
+
+    try {
+      // Find the user by ID
+      let user = await User.findById(req.params.id);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      // Ensure cart is an array and update the user
+      user.cart = Array.isArray(req.body.cart) ? req.body.cart : []; // Ensure cart is an array
+      await user.save(); // Save the updated user object
+
+      // Send the updated user as a response
+      res.status(200).json({
+        success: true,
+        message: "User cart updated successfully",
+        user,
+      });
+    } catch (error) {
+      console.error("Error updating user: ", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Internal server error",
+      });
     }
   }
 );
