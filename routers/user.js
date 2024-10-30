@@ -334,55 +334,64 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
   }
 });
 // Update user
-router.put(`/edituser/:id`, uploadOptions.single("image"), async (req, res) => {
-  // Validate ObjectId
-  if (!mongoose.isValidObjectId(req.params.id)) {
-    return res.status(400).json({ success: false, message: "Invalid User ID" });
-  }
-
-  try {
-    // Find the category by ID
-    let category = await User.findById(req.params.id);
-    if (!category) {
+router.put(
+  `/edituser/:id`,
+  authJwt(),
+  uploadOptions.single("image"),
+  async (req, res) => {
+    // Validate ObjectId
+    if (!mongoose.isValidObjectId(req.params.id)) {
       return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+        .status(400)
+        .json({ success: false, message: "Invalid User ID" });
     }
 
-    const file = req.file;
-    if (!file) {
-      return res.status(400).send("No image file provided");
+    try {
+      // Find the category by ID
+      let category = await User.findById(req.params.id);
+      if (!category) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      const file = req.file;
+      if (!file) {
+        return res.status(400).send("No image file provided");
+      }
+
+      const imageUrl = file.path; // This is the URL returned by Cloudinary
+      // Update the category
+      category = await User.findByIdAndUpdate(
+        req.params.id,
+        {
+          name: req.body.name || category.name,
+          phone: req.body.phone || category.phone,
+          email: req.body.email || category.email,
+          paymentInfo: req.body.paymentInfo || category.paymentInfo,
+          cart: req.body.cart?.length ? req.body.cart : [],
+          image: imageUrl,
+        },
+        { new: true }
+      );
+
+      // If no category is found after update, return a 404 error
+      if (!category) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Category not found" });
+      }
+
+      // Send the updated category as a response
+      res.status(200).json(category);
+    } catch (error) {
+      console.error("Error updating category: ", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
-
-    const imageUrl = file.path; // This is the URL returned by Cloudinary
-    // Update the category
-    category = await User.findByIdAndUpdate(
-      req.params.id,
-      {
-        name: req.body.name || category.name,
-        phone: req.body.phone || category.phone,
-        email: req.body.email || category.email,
-        paymentInfo: req.body.paymentInfo || category.paymentInfo,
-        cart: req.body.cart?.length ? req.body.cart : [],
-        image: imageUrl,
-      },
-      { new: true }
-    );
-
-    // If no category is found after update, return a 404 error
-    if (!category) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Category not found" });
-    }
-
-    // Send the updated category as a response
-    res.status(200).json(category);
-  } catch (error) {
-    console.error("Error updating category: ", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
   }
-});
+);
 router.post("/change-password", authJwt(), async (req, res) => {
   const userId = req.user.userId; // Get userId from JWT payload
 
