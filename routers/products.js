@@ -277,7 +277,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         name: req.body.name || currentProduct.name,
         description: req.body.description || currentProduct.description,
         category: category,
-        image: imageUrl,
+        image: imageUrl || currentProduct.image,
         isFeatured:
           req.body.isFeatured !== undefined
             ? req.body.isFeatured

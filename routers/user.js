@@ -608,7 +608,7 @@ router.get("/get/un_active/", async (req, res) => {
 // Example endpoint to clear user's cart
 
 // Assuming this is inside your user router
-router.delete("/:id/cart", async (req, res) => {
+router.delete("/:id/cart", authJwt(), async (req, res) => {
   const userId = req.params.id;
 
   try {
