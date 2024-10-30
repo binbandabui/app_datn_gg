@@ -38,11 +38,6 @@ function authJwt() {
       methods: ["GET"],
     },
 
-    {
-      pattern: /^\/api\/v1\/users\/edituser(\/|$)/,
-      methods: ["PUT"],
-    },
-
     //Register/verify-email
     {
       pattern: /^\/api\/v1\/users\/register(\/|$)/,
