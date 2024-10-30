@@ -400,7 +400,6 @@ router.put(
 router.post(
   `/userCart/:id`, // Using POST to update the user's cart
   authJwt(),
-
   async (req, res) => {
     // Validate ObjectId
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -418,8 +417,10 @@ router.post(
           .json({ success: false, message: "User not found" });
       }
 
-      // Ensure cart is an array and update the user
-      user.cart = Array.isArray(req.body.cart) ? req.body.cart : []; // Ensure cart is an array
+      // Ensure cart is an array and merge with existing cart
+      const incomingCart = Array.isArray(req.body.cart) ? req.body.cart : [];
+      user.cart = [...user.cart, ...incomingCart]; // Append new items to existing cart
+
       await user.save(); // Save the updated user object
 
       // Send the updated user as a response
