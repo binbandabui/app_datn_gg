@@ -337,7 +337,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
 router.put(
   `/edituser/:id`,
   authJwt(),
-  uploadOptions.single("image"),
+
   async (req, res) => {
     // Validate ObjectId
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -355,12 +355,12 @@ router.put(
           .json({ success: false, message: "User not found" });
       }
 
-      const file = req.file;
-      if (!file) {
-        return res.status(400).send("No image file provided");
-      }
+      // const file = req.file;
+      // if (!file) {
+      //   return res.status(400).send("No image file provided");
+      // }
 
-      const imageUrl = file.path; // This is the URL returned by Cloudinary
+      // const imageUrl = file.path; // This is the URL returned by Cloudinary
       // Update the category
       category = await User.findByIdAndUpdate(
         req.params.id,
@@ -370,7 +370,7 @@ router.put(
           email: req.body.email || category.email,
           paymentInfo: req.body.paymentInfo || category.paymentInfo,
           cart: req.body.cart?.length ? req.body.cart : [],
-          image: imageUrl,
+          // image: imageUrl,
         },
         { new: true }
       );
