@@ -265,9 +265,7 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
 
     const file = req.file;
     console.log("File received: ", file);
-    if (!file) {
-      return res.status(400).send("No image file provided");
-    }
+
     const imageUrl = file.path; // This is the URL returned by Cloudinary
 
     // Update the Product with conditional checks for each field
