@@ -525,6 +525,28 @@ router.post("/forgot-password", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+router.post("/reset-password", authJwt(), async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    // Input validation
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required." });
+    }
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    // Hash the new password before saving
+    user.passwordHash = bcrypt.hashSync(newPassword, 10); // Use 10 as the salt rounds (you can adjust this as needed)
+    await user.save(); // Save the updated user
+    return res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return res.status(500).json({ message: "An error occurred." });
+  }
+});
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
 
