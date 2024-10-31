@@ -525,7 +525,7 @@ router.post("/forgot-password", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-router.post("/reset-password", authJwt(), async (req, res) => {
+router.post("/reset-password", async (req, res) => {
   const { email, newPassword } = req.body;
 
   try {
@@ -549,7 +549,6 @@ router.post("/reset-password", authJwt(), async (req, res) => {
 });
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
-
   try {
     // Find the user by email
     const user = await User.findOne({ email });
@@ -579,9 +578,11 @@ router.post("/verify-otp", async (req, res) => {
     user.otp = null; // Clear OTP after successful verification
     user.otpExpiration = null; // Clear expiration
     await user.save();
+    const id = user.id;
 
     res.status(200).json({
       message: "OTP verified successfully, you can reset your password.",
+      id, // include the token in the response
     });
   } catch (error) {
     console.error("Error verifying OTP:", error); // Log the error for debugging
