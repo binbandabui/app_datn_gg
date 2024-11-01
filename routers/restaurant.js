@@ -83,20 +83,28 @@ router.get(`/:id`, async (req, res) => {
 });
 router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
   try {
-    const file = req.file;
-    if (!file) {
-      console.log("No file received");
-      return res.status(400).send("No image file provided");
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid branch found ID" });
     }
-    const imageUrl = file.path; // This is the URL returned by Cloudinary
+    const currentProduct = await Restaurant.findById(req.params.id);
+    if (!currentProduct) {
+      return res.status(404).send("Product not found");
+    }
+    const file = req.file;
+    const imageUrl = file ? file.path : currentProduct.image;
     const restaurant = await Restaurant.findByIdAndUpdate(
       req.params.id,
       {
-        name: req.body.name || restaurant.name,
-        address: req.body.address || restaurant.address,
-        review: req.body.review || restaurant.review,
+        name: req.body.name || currentProduct.name,
+        address: req.body.address || currentProduct.address,
+        review: req.body.review || currentProduct.review,
         image: imageUrl,
-        isActive: req.body.isActive || restaurant.isActive,
+        isActive:
+          req.body.isActive !== undefined
+            ? req.body.isActive
+            : currentProduct.isActive,
       },
       { new: true }
 
