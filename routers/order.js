@@ -125,7 +125,7 @@ router.get(`/`, async (req, res) => {
 
     const orders = await Order.find(filter)
       .populate("orderItems")
-      .populate("user")
+      .populate("user", "email name phone ")
       .populate("restaurant");
 
     if (!orders) {
@@ -224,7 +224,7 @@ router.get(`/:id`, async (req, res) => {
   try {
     // Fetch the order by ID
     const order = await Order.findById(req.params.id)
-      .populate("user", "name") // Populate user with only the name
+      .populate("user", "email name phone ") // Populate user with only the name
       .populate({
         path: "orderItems",
         populate: {
