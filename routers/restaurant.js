@@ -58,15 +58,15 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
     }
     const imageUrl = file.path; // This is the URL returned by Cloudinary
 
-    const restaurant = new Category({
+    const restaurant = new Restaurant({
       name: req.body.name,
       address: req.body.address,
       review: req.body.review,
       image: imageUrl,
       isActive: req.body.isActive,
     });
-    restaurant = await restaurant.save();
-    res.send(restaurant);
+    const newRestaurant = await restaurant.save();
+    res.status(201).send(newRestaurant);
   } catch (err) {
     console.error(err);
     res.status(400).send(err);
