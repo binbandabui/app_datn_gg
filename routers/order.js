@@ -309,7 +309,7 @@ router.get("/user/:userId", async (req, res) => {
           },
         ],
       })
-      .populate("user", "name");
+      .populate("user", "email name phone");
 
     if (!orders || orders.length === 0) {
       return res
