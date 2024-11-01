@@ -648,5 +648,107 @@ router.delete("/:id/cart", authJwt(), async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
+router.put("/:userId/cart/:cartItemId", authJwt(), async (req, res) => {
+  const { updateFields } = req.body; // Expecting cartItemId and updateFields in request body
+  const { userId, cartItemId } = req.params; // Extract userId and cartItemId from URL parameters
+
+  // Validate ObjectId for userId
+  if (!mongoose.isValidObjectId(req.params.userId)) {
+    return res.status(400).json({ success: false, message: "Invalid User ID" });
+  }
+
+  // Validate request body fields
+  if (!cartItemId || !updateFields) {
+    return res.status(400).json({
+      success: false,
+      message: "cartItemId and updateFields are required",
+    });
+  }
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Find the cart item index using item.id
+    const itemIndex = user.cart.findIndex((item) => item.id === cartItemId);
+    if (itemIndex === -1) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Cart item not found" });
+    }
+
+    // Update the specific cart item
+    user.cart[itemIndex] = {
+      ...user.cart[itemIndex], // Keep existing item properties
+      ...updateFields, // Update with new values from request body
+    };
+
+    // Save the updated user
+    await user.save();
+
+    // Return only the updated cart item
+    res.status(200).json({
+      success: true,
+      message: "Cart item updated successfully",
+      updatedItem: user.cart[itemIndex], // Return the updated item
+    });
+  } catch (error) {
+    console.error("Error updating cart item: ", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
+  }
+});
+router.delete("/:userId/cart/:cartItemId", authJwt(), async (req, res) => {
+  const { userId, cartItemId } = req.params; // Extract userId and cartItemId from URL parameters
+
+  // Validate ObjectId for userId
+  if (!mongoose.isValidObjectId(userId)) {
+    return res.status(400).json({ success: false, message: "Invalid User ID" });
+  }
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Find the cart item index using item.id
+    const itemIndex = user.cart.findIndex((item) => item.id === cartItemId);
+    if (itemIndex === -1) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Cart item not found" });
+    }
+
+    // Remove the cart item from the array
+    user.cart.splice(itemIndex, 1);
+
+    // Save the updated user
+    await user.save();
+
+    // Return a success response
+    res.status(200).json({
+      success: true,
+      message: "Cart item removed successfully",
+      cart: user.cart, // Optionally return the updated cart
+    });
+  } catch (error) {
+    console.error("Error removing cart item: ", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
+  }
+});
 
 module.exports = router;
