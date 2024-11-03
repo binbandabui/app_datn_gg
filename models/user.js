@@ -60,6 +60,10 @@ const userSchema = mongoose.Schema({
     type: Array,
     default: [],
   },
+  contact: {
+    type: Array,
+    default: [],
+  },
   otp: { type: String, default: null },
   otpExpiration: { type: Date, default: null },
 });

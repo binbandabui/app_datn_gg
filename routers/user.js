@@ -315,6 +315,10 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
         isAdmin: req.body.isAdmin || category.isAdmin,
         isVerified: req.body.isVerified || category.isVerified,
         isActive: req.body.isActive || category.isActive,
+        contact: Array.isArray(req.body.contact)
+          ? req.body.contact
+          : user.contact, // Ensure contact is an array
+        cart: Array.isArray(req.body.cart) ? req.body.cart : user.cart, // Ensure cart is an array
       },
       { new: true }
     );
