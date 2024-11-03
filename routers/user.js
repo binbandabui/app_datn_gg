@@ -287,38 +287,32 @@ router.delete(`/:id`, async (req, res) => {
 });
 router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
   try {
-    // Find the category by ID
-    let category = await User.findById(req.params.id);
-    if (!category) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Category not found" });
+    const currentProduct = await User.findById(req.params.id);
+    if (!currentProduct) {
+      return res.status(404).send("Product not found");
     }
-
-    // Process the uploaded file, if any
     const file = req.file;
-    if (!file) {
-      return res.status(400).send("No image file provided");
-    }
-
-    const imageUrl = file.path; // This is the URL returned by Cloudinary
+    const imageUrl = file ? file.path : currentProduct.image; // Use the new file path if available, otherwise keep the original image
+    // This is the URL returned by Cloudinary
 
     // Update the category
     category = await User.findByIdAndUpdate(
       req.params.id,
       {
-        name: req.body.name || category.name,
-        phone: req.body.phone || category.phone,
-        email: req.body.email || category.email,
-        paymentInfo: req.body.paymentInfo || category.paymentInfo,
+        name: req.body.name || currentProduct.name,
+        phone: req.body.phone || currentProduct.phone,
+        email: req.body.email || currentProduct.email,
+        paymentInfo: req.body.paymentInfo || currentProduct.paymentInfo,
         image: imageUrl,
-        isAdmin: req.body.isAdmin || category.isAdmin,
-        isVerified: req.body.isVerified || category.isVerified,
-        isActive: req.body.isActive || category.isActive,
+        isAdmin: req.body.isAdmin || currentProduct.isAdmin,
+        isVerified: req.body.isVerified || currentProduct.isVerified,
+        isActive: req.body.isActive || currentProduct.isActive,
         contact: Array.isArray(req.body.contact)
           ? req.body.contact
-          : user.contact, // Ensure contact is an array
-        cart: Array.isArray(req.body.cart) ? req.body.cart : user.cart, // Ensure cart is an array
+          : currentProduct.contact, // Ensure contact is an array
+        cart: Array.isArray(req.body.cart)
+          ? req.body.cart
+          : currentProduct.cart, // Ensure cart is an array
       },
       { new: true }
     );
