@@ -143,7 +143,7 @@ async function isRevoked(req, payload, done) {
     },
     {
       pattern: /^\/api\/v1\/users(\/|$)/,
-      methods: ["DELETE", "PUT"],
+      methods: ["GET", "DELETE", "PUT"],
     },
     {
       pattern: /^\/api\/v1\/attributes(\/|$)/,
