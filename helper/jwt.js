@@ -102,32 +102,58 @@ function authJwt() {
   };
 }
 async function isRevoked(req, payload, done) {
+  // Define paths that non-admin users can access
+  const nonAdminRoutes = [
+    {
+      path: /^\/users\/\w+\/cart\/\w+$/, // Matches /users/{id}/cart/{cartId}
+      methods: ["DELETE"],
+    },
+    {
+      path: /^\/users\/userCart\/\w+$/, // Matches /users/userCart/{id}
+      methods: ["POST"],
+    },
+  ];
+
+  // Check if the request matches any non-admin routes
+  const isNonAdminRoute = nonAdminRoutes.some(({ path, methods }) => {
+    return path.test(req.path) && methods.includes(req.method);
+  });
+
+  // If the route is a non-admin route, allow access regardless of admin status
+  if (isNonAdminRoute) {
+    return done(); // Allow access
+  }
+
   const adminProtectedRoutes = [
     {
       pattern: /^\/api\/v1\/products(\/|$)/,
-      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
+      methods: ["POST", "DELETE", "PUT"],
     },
     {
       pattern: /^\/api\/v1\/restaurants(\/|$)/,
-      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
+      methods: ["POST", "DELETE", "PUT"],
     },
     {
       pattern: /^\/api\/v1\/users(\/|$)/,
-      methods: ["DELETE", "PUT"], // Make sure methods are uppercase
+      methods: ["DELETE", "PUT"],
     },
     {
       pattern: /^\/api\/v1\/attributes(\/|$)/,
-      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
+      methods: ["POST", "DELETE", "PUT"],
     },
     {
       pattern: /^\/api\/v1\/category(\/|$)/,
-      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
+      methods: ["POST", "DELETE", "PUT"],
+    },
+    {
+      pattern: /^\/api\/v1\/orders(\/|$)/,
+      methods: ["DELETE", "PUT"],
     },
   ];
 
   // Check if the request matches any admin protected routes
   const isAdminRoute = adminProtectedRoutes.some(({ pattern, methods }) => {
-    return pattern.test(req.path) && methods.includes(req.method); // Check both path and method
+    return pattern.test(req.path) && methods.includes(req.method);
   });
 
   if (isAdminRoute && !payload.isAdmin) {
