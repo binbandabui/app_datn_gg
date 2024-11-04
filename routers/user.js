@@ -397,7 +397,7 @@ router.put(
 );
 router.post(
   `/userCart/:id`, // Using POST to update the user's cart
-  authJwt(),
+
   async (req, res) => {
     // Validate ObjectId
     if (!mongoose.isValidObjectId(req.params.id)) {
