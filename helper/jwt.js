@@ -112,6 +112,14 @@ async function isRevoked(req, payload, done) {
       path: /^\/users\/userCart\/\w+$/, // Matches /users/userCart/{id}
       methods: ["POST"],
     },
+    {
+      pattern: /^\/api\/v1\/users\/(\w+)\/cart\/(\w+)$/, // For removing a specific cart item
+      methods: ["DELETE"],
+    },
+    {
+      pattern: /^\/api\/v1\/users\/(\w+)\/cart$/, // For adding items to the cart
+      methods: ["POST"],
+    },
   ];
 
   // Check if the request matches any non-admin routes
