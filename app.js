@@ -24,6 +24,8 @@ const restaurantRouter = require("./routers/restaurant");
 const orderItemRouter = require("./routers/order-item");
 const favoriteRouter = require("./routers/favorite");
 const attributeRouter = require("./routers/attribute");
+const clientRouter = require("./routers/clientRouter");
+
 //
 
 const authJwt = require("./helper/jwt");
@@ -56,7 +58,7 @@ app.use(`${api}/orderitem`, orderItemRouter);
 app.use(`${api}/favorites`, favoriteRouter);
 app.use(`${api}/attributes`, attributeRouter);
 // app.use(`${api}/carts`, cartRouter);
-
+app.use(`${api}/client`, clientRouter);
 mongoose
   .connect(atlas, {
     useNewUrlParser: true,
