@@ -629,7 +629,7 @@ router.get("/get/un_active/", async (req, res) => {
 // Example endpoint to clear user's cart
 
 // Assuming this is inside your user router
-router.delete("/:id/cart", authJwt(), async (req, res) => {
+router.delete("/:id/cart", async (req, res) => {
   const userId = req.params.id;
 
   try {
@@ -646,7 +646,7 @@ router.delete("/:id/cart", authJwt(), async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
-router.put("/:userId/cart/:cartItemId", authJwt(), async (req, res) => {
+router.put("/:userId/cart/:cartItemId", async (req, res) => {
   const { updateFields } = req.body; // Expecting cartItemId and updateFields in request body
   const { userId, cartItemId } = req.params; // Extract userId and cartItemId from URL parameters
 
@@ -703,7 +703,7 @@ router.put("/:userId/cart/:cartItemId", authJwt(), async (req, res) => {
     });
   }
 });
-router.delete("/:userId/cart/:cartItemId", authJwt(), async (req, res) => {
+router.delete("/:userId/cart/:cartItemId", async (req, res) => {
   const { userId, cartItemId } = req.params; // Extract userId and cartItemId from URL parameters
 
   // Validate ObjectId for userId
