@@ -52,9 +52,7 @@ const storage = new CloudinaryStorage({
 
 const uploadOptions = multer({ storage: storage });
 
-router.get(`/`, authJwt(), async (req, res) => {
-  const userId = req.user.userId; // Get userId from JWT payload
-  console.log(userId);
+router.get(`/`, async (req, res) => {
   const userList = await User.find();
   if (!userList) {
     return res.status(404).json({ success: false });
