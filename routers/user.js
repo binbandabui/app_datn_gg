@@ -437,11 +437,9 @@ router.post(
   }
 );
 
-router.post("/change-password", authJwt(), async (req, res) => {
-  const userId = req.user.userId; // Get userId from JWT payload
-
+router.post("/change-password", async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, userId } = req.body;
 
     // Input validation (you can expand this as needed)
     if (!currentPassword || !newPassword) {

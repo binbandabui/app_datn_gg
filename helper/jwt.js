@@ -102,9 +102,24 @@ function authJwt() {
   };
 }
 async function isRevoked(req, payload, done) {
-  if (!payload.isAdmin) {
-    done(null, true);
+  const adminProtectedRoutes = [
+    {
+      pattern: /^\/api\/v1\/products(\/|$)/,
+      methods: ["Post"],
+    },
+  ];
+
+  const isAdminRoute = adminProtectedRoutes.some((pattern) =>
+    pattern.test(req.path)
+  );
+
+  if (isAdminRoute && !payload.isAdmin) {
+    // If the route requires admin access and the user is not an admin
+    return done(null, true); // Revoke access
   }
-  done();
+
+  // If it is not an admin route or the user is an admin
+  done(); // Allow access
 }
+
 module.exports = authJwt;
