@@ -105,13 +105,30 @@ async function isRevoked(req, payload, done) {
   const adminProtectedRoutes = [
     {
       pattern: /^\/api\/v1\/products(\/|$)/,
-      methods: ["Post"],
+      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
+    },
+    {
+      pattern: /^\/api\/v1\/restaurants(\/|$)/,
+      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
+    },
+    {
+      pattern: /^\/api\/v1\/users(\/|$)/,
+      methods: ["GET", "DELETE", "PUT"], // Make sure methods are uppercase
+    },
+    {
+      pattern: /^\/api\/v1\/attributes(\/|$)/,
+      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
+    },
+    {
+      pattern: /^\/api\/v1\/category(\/|$)/,
+      methods: ["POST", "DELETE", "PUT"], // Make sure methods are uppercase
     },
   ];
 
-  const isAdminRoute = adminProtectedRoutes.some((pattern) =>
-    pattern.test(req.path)
-  );
+  // Check if the request matches any admin protected routes
+  const isAdminRoute = adminProtectedRoutes.some(({ pattern, methods }) => {
+    return pattern.test(req.path) && methods.includes(req.method); // Check both path and method
+  });
 
   if (isAdminRoute && !payload.isAdmin) {
     // If the route requires admin access and the user is not an admin
