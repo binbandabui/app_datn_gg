@@ -101,6 +101,54 @@ function authJwt() {
     })(req, res, next); // Ensure correct usage of expressJwt
   };
 }
+// Non-admin routes for user access
+const nonAdminRoutes = [
+  {
+    pattern: /^\/api\/v1\/users\/(\w+)\/cart(\/|$)/, // For clearing cart
+    methods: ["DELETE"],
+  },
+  {
+    pattern: /^\/api\/v1\/users\/(\w+)\/cart\/(\w+)$/, // For updating a specific cart item
+    methods: ["PUT"],
+  },
+  {
+    pattern: /^\/api\/v1\/users\/(\w+)\/cart\/(\w+)$/, // For removing a specific cart item
+    methods: ["DELETE"],
+  },
+  {
+    pattern: /^\/api\/v1\/users\/(\w+)\/cart$/, // For adding items to the cart
+    methods: ["POST"],
+  },
+];
+
+// Admin protected routes
+const adminProtectedRoutes = [
+  {
+    pattern: /^\/api\/v1\/products(\/|$)/,
+    methods: ["POST", "DELETE", "PUT"],
+  },
+  {
+    pattern: /^\/api\/v1\/restaurants(\/|$)/,
+    methods: ["POST", "DELETE", "PUT"],
+  },
+  {
+    pattern: /^\/api\/v1\/users(\/|$)/,
+    methods: ["DELETE", "PUT"],
+  },
+  {
+    pattern: /^\/api\/v1\/attributes(\/|$)/,
+    methods: ["POST", "DELETE", "PUT"],
+  },
+  {
+    pattern: /^\/api\/v1\/category(\/|$)/,
+    methods: ["POST", "DELETE", "PUT"],
+  },
+  {
+    pattern: /^\/api\/v1\/orders(\/|$)/,
+    methods: ["DELETE", "PUT"],
+  },
+];
+
 async function isRevoked(req, payload, done) {
   // Check if the request matches any admin protected routes
   const isAdminRoute = adminProtectedRoutes.some(({ pattern, methods }) => {
