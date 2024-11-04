@@ -3,6 +3,11 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const Order = require("../models/order");
+const { OrderItem } = require("../models/order-item"); // Ensure this import is correct
+const Attribute = require("../models/attribute");
+
+const Restaurant = require("../models/restaurant");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
@@ -52,13 +57,6 @@ const storage = new CloudinaryStorage({
 
 const uploadOptions = multer({ storage: storage });
 
-router.get(`/`, async (req, res) => {
-  const userList = await User.find();
-  if (!userList) {
-    return res.status(404).json({ success: false });
-  }
-  res.status(200).json(userList);
-});
 router.get(`/:id`, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) {
@@ -744,5 +742,42 @@ router.delete("/:userId/cart/:cartItemId", async (req, res) => {
     });
   }
 });
+////////////////////////////////////////////////////////////////////////
+router.get("/user/:userId", async (req, res) => {
+  try {
+    // Get the status from query parameters
+    const { status } = req.query;
 
+    // Create a filter object based on the status if provided
+    const filter = { user: req.params.userId }; // Always filter by userId
+    if (status) {
+      filter.status = status; // Add status to filter if provided
+    }
+
+    // Find orders with the specified filter and populate relevant fields
+    const orders = await Order.find(filter)
+      .populate({
+        path: "orderItems",
+        populate: [
+          {
+            path: "attribute",
+            populate: {
+              path: "productId",
+              populate: { path: "category" },
+            },
+          },
+        ],
+      })
+      .populate("user", "email name phone");
+
+    if (!orders || orders.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No orders found for this user." });
+    }
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 module.exports = router;
