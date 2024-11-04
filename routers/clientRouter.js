@@ -581,48 +581,10 @@ router.post("/verify-otp", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-// Get all verified users
-router.get("/get/verified", async (req, res) => {
-  try {
-    const verifiedUsers = await User.find({ isVerified: true });
-    res.send(verifiedUsers);
-  } catch (error) {
-    console.error("Error fetching verified users:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
 
-// Get all unverified users
-router.get("/get/unverified", async (req, res) => {
-  try {
-    const unverifiedUsers = await User.find({ isVerified: false });
-    res.send(unverifiedUsers);
-  } catch (error) {
-    console.error("Error fetching unverified users:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-router.get("/get/active/", async (req, res) => {
-  try {
-    const verifiedUsers = await User.find({ isActive: true });
-    res.send(verifiedUsers);
-  } catch (error) {
-    console.error("Error fetching verified users:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-router.get("/get/un_active/", async (req, res) => {
-  try {
-    const verifiedUsers = await User.find({ isActive: false });
-    res.send(verifiedUsers);
-  } catch (error) {
-    console.error("Error fetching verified users:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
 // Example endpoint to clear user's cart
 
-// Assuming this is inside your user router
+// Cart
 router.delete("/:id/cart", async (req, res) => {
   const userId = req.params.id;
 
@@ -742,7 +704,7 @@ router.delete("/:userId/cart/:cartItemId", async (req, res) => {
     });
   }
 });
-////////////////////////////////////////////////////////////////////////
+//User order
 router.get("/user/:userId", async (req, res) => {
   try {
     // Get the status from query parameters
