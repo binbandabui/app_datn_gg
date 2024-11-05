@@ -49,15 +49,15 @@ function authJwt() {
     },
     //Forgot password
     {
-      pattern: /^\/api\/v1\/users\/forgot-password(\/|$)/,
+      pattern: /^\/api\/v1\/client\/forgot-password(\/|$)/,
       methods: ["POST"],
     },
     {
-      pattern: /^\/api\/v1\/users\/verify-otp(\/|$)/,
+      pattern: /^\/api\/v1\/client\/verify-otp(\/|$)/,
       methods: ["POST"],
     },
     {
-      pattern: /^\/api\/v1\/users\/reset-password(\/|$)/,
+      pattern: /^\/api\/v1\/client\/reset-password(\/|$)/,
       methods: ["POST"],
     },
     //Login

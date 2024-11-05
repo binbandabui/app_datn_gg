@@ -704,7 +704,7 @@ router.delete("/:userId/cart/:cartItemId", async (req, res) => {
     });
   }
 });
-//User order
+//User
 router.get("/user/:userId", async (req, res) => {
   try {
     // Get the status from query parameters
