@@ -25,10 +25,14 @@ const orderSchema = new mongoose.Schema({
   totalPrice: {
     type: Number,
   },
+  totalCost: {
+    type: Number,
+  },
   transactionId: {
     type: String,
     required: true,
   },
+
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

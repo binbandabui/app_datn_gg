@@ -158,6 +158,7 @@ router.post("/add/multiple", async (req, res) => {
       const newAttribute = new Attribute({
         size: attribute.size,
         price: attribute.price,
+        defaultPrice: attribute.defaultPrice,
         productId: productId,
         isActive: attribute.isActive,
       });

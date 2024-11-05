@@ -10,6 +10,11 @@ const attributeSchema = mongoose.Schema({
     required: true,
     default: 0,
   },
+  defaultPrice: {
+    type: Number,
+    required: true,
+    default: 30,
+  },
   isActive: {
     type: Boolean,
     default: true,

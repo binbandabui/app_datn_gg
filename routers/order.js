@@ -125,11 +125,21 @@ router.get(`/`, async (req, res) => {
     const filter = status ? { status } : {};
 
     const orders = await Order.find(filter)
-      .populate("orderItems")
-      .populate("user", "email name phone ")
+      .populate({
+        path: "orderItems",
+        populate: {
+          path: "attribute",
+          populate: {
+            path: "productId", // Now populate the productId
+            model: "Product", // Ensure to specify the model for the population
+            select: "name", // Select only the name field from Product
+          }, // Populate the attribute field first
+        },
+      })
+      .populate("user", "email name phone")
       .populate("restaurant");
 
-    if (!orders) {
+    if (!orders || orders.length === 0) {
       return res.status(404).json({ message: "No orders found" });
     }
 
@@ -186,7 +196,15 @@ router.post(`/`, async (req, res) => {
         return totalPrice;
       })
     );
-
+    const totalCost = await Promise.all(
+      orderItemIds.map(async (orderItemId) => {
+        const orderItem = await OrderItem.findById(orderItemId).populate(
+          "attribute"
+        );
+        const totalCost = orderItem.quantity * orderItem.attribute.defaultPrice; // Use the attribute price
+        return totalCost;
+      })
+    );
     const restaurant = await Restaurant.findById(req.body.restaurant);
     if (!restaurant) {
       throw new Error("Invalid Restaurant ID");
@@ -196,6 +214,8 @@ router.post(`/`, async (req, res) => {
       throw new Error("Invalid Restaurant ID");
     }
     const total = totalPrices.reduce((a, b) => a + b, 0);
+    const cost = totalCost.reduce((a, b) => a + b, 0);
+
     const transactionId = uuidv4();
     // Create and save the new order
     let order = new Order({
@@ -203,7 +223,9 @@ router.post(`/`, async (req, res) => {
       shippingAddress: req.body.shippingAddress,
       status: req.body.status,
       paymentMethob: req.body.paymentMethob,
-      totalPrice: total, // Use the calculated total price
+      totalPrice: total,
+      totalCost: cost,
+      // Use the calculated total price
       user: userId,
       restaurant: restaurant, // Use the restaurant ID from the request body
       transactionId: transactionId,
@@ -322,5 +344,165 @@ router.get("/user/:userId", async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+router.delete("/:id", async (req, res) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.id);
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+    res.status(200).json({ success: true, message: "Order was removed" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+const getTotalSales = async (req, res) => {
+  const { type } = req.query; // Get aggregation type from query parameter
+  let groupStage;
 
+  // Define the group stage based on the type
+  switch (type) {
+    case "day":
+      groupStage = {
+        _id: {
+          $dateToString: { format: "%Y-%m-%d", date: "$dateOrdered" },
+        },
+        totalSales: { $sum: "$totalPrice" },
+        totalCost: { $sum: "$totalCost" },
+        profit: { $sum: { $subtract: ["$totalPrice", "$totalCost"] } }, // Calculate profit
+      };
+      break;
+
+    case "week":
+      groupStage = {
+        _id: {
+          year: { $year: "$dateOrdered" },
+          week: { $week: "$dateOrdered" },
+        },
+        dateToString: {
+          $first: {
+            $dateToString: { format: "%Y-%m-%d", date: "$dateOrdered" },
+          },
+        },
+        totalSales: { $sum: "$totalPrice" },
+        totalCost: { $sum: "$totalCost" },
+        profit: { $sum: { $subtract: ["$totalPrice", "$totalCost"] } }, // Calculate profit
+      };
+      break;
+
+    case "month":
+      groupStage = {
+        _id: {
+          year: { $year: "$dateOrdered" },
+          month: { $month: "$dateOrdered" },
+        },
+        dateToString: {
+          $first: {
+            $dateToString: { format: "%Y-%m-%d", date: "$dateOrdered" },
+          },
+        },
+        totalSales: { $sum: "$totalPrice" },
+        totalCost: { $sum: "$totalCost" },
+        profit: { $sum: { $subtract: ["$totalPrice", "$totalCost"] } }, // Calculate profit
+      };
+      break;
+
+    default:
+      return res.status(400).json({
+        success: false,
+        message: "Invalid type parameter. Use 'day', 'week', or 'month'.",
+      });
+  }
+
+  try {
+    const result = await Order.aggregate([
+      {
+        $match: {
+          status: "Success", // Only include orders with status "Success"
+        },
+      },
+      {
+        $group: groupStage, // Use the dynamically defined group stage
+      },
+      {
+        $sort: {
+          ...(type === "day" ? { _id: -1 } : { "_id.year": 1, "_id.week": 1 }), // Sort by date in descending order for daily and ascending for weekly/monthly
+        },
+      },
+    ]);
+
+    if (!result || result.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No sales data found" });
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error calculating total sales:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Define the route for total sales with a type parameter
+router.get("/get/totalsales", getTotalSales);
+
+router.get("/calculate-profit/:orderIds", async (req, res) => {
+  try {
+    const orderIds = req.params.orderIds.split(","); // Split the IDs into an array
+
+    // Fetch all orders by their IDs
+    const orders = await Order.find({ _id: { $in: orderIds } });
+    if (orders.length === 0) {
+      return res.status(404).json({ message: "No orders found" });
+    }
+
+    // Calculate profits for each order
+    const profits = orders.map((order) => {
+      const grossProfit = order.totalPrice - order.totalCost;
+      return {
+        orderId: order._id,
+        totalPrice: order.totalPrice,
+        totalCost: order.totalCost,
+        profit: grossProfit,
+        // netProfit: grossProfit - additionalExpenses // Uncomment if needed
+      };
+    });
+
+    res.json(profits); // Return an array of profits
+  } catch (error) {
+    console.error("Error calculating profits:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+// Route to calculate profits for all orders
+router.get("/calculate-profit", async (req, res) => {
+  try {
+    // Fetch all orders from the database
+    const orders = await Order.find();
+    if (orders.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No orders found" });
+    }
+
+    // Calculate profits for each order
+    const profits = orders.map((order) => {
+      const grossProfit = order.totalPrice - order.totalCost;
+      return {
+        orderId: order._id,
+        totalPrice: order.totalPrice,
+        totalCost: order.totalCost,
+        profit: grossProfit,
+        // netProfit: grossProfit - additionalExpenses // Uncomment if needed
+      };
+    });
+
+    res.json({ success: true, data: profits });
+  } catch (error) {
+    console.error("Error calculating profits:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 module.exports = router;
