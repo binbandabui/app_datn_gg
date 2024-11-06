@@ -150,7 +150,7 @@ router.get(`/`, async (req, res) => {
   }
 });
 
-router.post(`/`, async (req, res) => {
+router.post(`/`, authJwt(), async (req, res) => {
   try {
     // Log the incoming request body for debugging
     console.log("Request Body:", req.body);
