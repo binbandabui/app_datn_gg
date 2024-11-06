@@ -6,13 +6,13 @@ const User = require("../models/user");
 const Order = require("../models/order");
 const { OrderItem } = require("../models/order-item"); // Ensure this import is correct
 const Attribute = require("../models/attribute");
+const authJwt = require("../helper/jwt");
 
 const Restaurant = require("../models/restaurant");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto"); // Import crypto for generating OTPs
-const authJwt = require("../helper/jwt");
 
 // // Mapping of file types for upload validation
 // const FILE_TYPES_MAP = {
@@ -281,119 +281,88 @@ router.delete(`/:id`, async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 });
-router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
-  try {
-    const currentProduct = await User.findById(req.params.id);
-    if (!currentProduct) {
-      return res.status(404).send("Product not found");
-    }
-    const file = req.file;
-    const imageUrl = file ? file.path : currentProduct.image; // Use the new file path if available, otherwise keep the original image
-    // This is the URL returned by Cloudinary
 
-    // Update the category
-    category = await User.findByIdAndUpdate(
-      req.params.id,
-      {
-        name: req.body.name || currentProduct.name,
-        phone: req.body.phone || currentProduct.phone,
-        email: req.body.email || currentProduct.email,
-        paymentInfo: req.body.paymentInfo || currentProduct.paymentInfo,
-        image: imageUrl,
-        isAdmin: req.body.isAdmin || currentProduct.isAdmin,
-        isVerified: req.body.isVerified || currentProduct.isVerified,
-        isActive: req.body.isActive || currentProduct.isActive,
-        contact: Array.isArray(req.body.contact)
-          ? req.body.contact
-          : currentProduct.contact, // Ensure contact is an array
-        cart: Array.isArray(req.body.cart)
-          ? req.body.cart
-          : currentProduct.cart, // Ensure cart is an array
-      },
-      { new: true }
-    );
-
-    // If no category is found after update, return a 404 error
-    if (!category) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Category not found" });
-    }
-
-    // Send the updated category as a response
-    res.status(200).json(category);
-  } catch (error) {
-    console.error("Error updating category: ", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
 // Update user
 router.put(
   `/edituser/:id`,
   authJwt(),
   uploadOptions.single("image"),
   async (req, res) => {
-    // Validate ObjectId
-    if (!mongoose.isValidObjectId(req.params.id)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid User ID" });
-    }
-
-    console.log("Request Body:", req.body);
-    console.log("Uploaded File:", req.file);
-
     try {
-      // Find the user by ID
-      let user = await User.findById(req.params.id);
-      if (!user) {
+      const currentProduct = await User.findById(req.params.id);
+      if (!currentProduct) {
+        return res.status(404).send("User not found");
+      }
+
+      const file = req.file;
+      const imageUrl = file ? file.path : currentProduct.image; // Use the new file path if available, otherwise keep the original image
+
+      // Determine the updated contact array
+      let updatedContact;
+      if (
+        req.body.contact &&
+        typeof req.body.contact === "object" &&
+        !Array.isArray(req.body.contact)
+      ) {
+        updatedContact = Object.values(req.body.contact); // Convert object values to array
+      } else if (
+        Array.isArray(req.body.contact) &&
+        req.body.contact.length > 0
+      ) {
+        updatedContact = req.body.contact; // Use array directly if provided and not empty
+      } else {
+        updatedContact = currentProduct.contact; // Keep existing contact if not provided or empty
+      }
+
+      // Update the user
+      const updatedUser = await User.findByIdAndUpdate(
+        req.params.id,
+        {
+          name: req.body.name || currentProduct.name,
+          phone: req.body.phone || currentProduct.phone,
+          email: req.body.email || currentProduct.email,
+          paymentInfo: req.body.paymentInfo || currentProduct.paymentInfo,
+          image: imageUrl,
+          isAdmin:
+            req.body.isAdmin !== undefined
+              ? req.body.isAdmin
+              : currentProduct.isAdmin,
+          isVerified:
+            req.body.isVerified !== undefined
+              ? req.body.isVerified
+              : currentProduct.isVerified,
+          isActive:
+            req.body.isActive !== undefined
+              ? req.body.isActive
+              : currentProduct.isActive,
+          contact: updatedContact, // Use the updated or existing contact array here
+          cart: Array.isArray(req.body.cart)
+            ? req.body.cart
+            : currentProduct.cart, // Ensure cart is an array
+        },
+        { new: true }
+      );
+
+      if (!updatedUser) {
         return res
           .status(404)
           .json({ success: false, message: "User not found" });
       }
 
-      const file = req.file;
-      if (!file) {
-        console.log("No image file provided");
-      }
-
-      const imageUrl = file ? file.path : user.image; // Use the existing image if no new image provided
-
-      // Update the user
-      user = await User.findByIdAndUpdate(
-        req.params.id,
-        {
-          name: req.body.name || user.name,
-          phone: req.body.phone || user.phone,
-          email: req.body.email || user.email,
-          paymentInfo: req.body.paymentInfo || user.paymentInfo,
-          cart: Array.isArray(req.body.cart) ? req.body.cart : [], // Ensure cart is an array
-          image: imageUrl,
-        },
-        { new: true }
-      );
-
-      // If no user is found after update, return a 404 error
-      if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, message: "User not found after update" });
-      }
-
-      // Send the updated user as a response
-      res.status(200).json(user);
+      res.status(200).json(updatedUser);
     } catch (error) {
       console.error("Error updating user: ", error);
-      res.status(500).json({
-        success: false,
-        message: error.message || "Internal server error",
-      });
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
   }
 );
+
 router.post(
   `/userCart/:id`, // Using POST to update the user's cart
 
+  authJwt(),
   async (req, res) => {
     // Validate ObjectId
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -433,7 +402,7 @@ router.post(
   }
 );
 
-router.post("/change-password", async (req, res) => {
+router.post("/change-password", authJwt(), async (req, res) => {
   try {
     const { currentPassword, newPassword, userId } = req.body;
 
@@ -585,7 +554,7 @@ router.post("/verify-otp", async (req, res) => {
 // Example endpoint to clear user's cart
 
 // Cart
-router.delete("/:id/cart", async (req, res) => {
+router.delete("/:id/cart", authJwt(), async (req, res) => {
   const userId = req.params.id;
 
   try {
@@ -602,7 +571,7 @@ router.delete("/:id/cart", async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
-router.put("/:userId/cart/:cartItemId", async (req, res) => {
+router.put("/:userId/cart/:cartItemId", authJwt(), async (req, res) => {
   const { updateFields } = req.body; // Expecting cartItemId and updateFields in request body
   const { userId, cartItemId } = req.params; // Extract userId and cartItemId from URL parameters
 
@@ -659,7 +628,7 @@ router.put("/:userId/cart/:cartItemId", async (req, res) => {
     });
   }
 });
-router.delete("/:userId/cart/:cartItemId", async (req, res) => {
+router.delete("/:userId/cart/:cartItemId", authJwt(), async (req, res) => {
   const { userId, cartItemId } = req.params; // Extract userId and cartItemId from URL parameters
 
   // Validate ObjectId for userId
@@ -705,7 +674,7 @@ router.delete("/:userId/cart/:cartItemId", async (req, res) => {
   }
 });
 //User
-router.get("/user/:userId", async (req, res) => {
+router.get("/user/:userId", authJwt(), async (req, res) => {
   try {
     // Get the status from query parameters
     const { status } = req.query;
