@@ -711,4 +711,42 @@ router.get("/user/:userId", authJwt(), async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+router.put(
+  `/uploadAvatar/:id`,
+  authJwt(),
+  uploadOptions.single("image"),
+  async (req, res) => {
+    try {
+      const currentProduct = await User.findById(req.params.id);
+      if (!currentProduct) {
+        return res.status(404).send("User not found");
+      }
+
+      const file = req.file;
+      const imageUrl = file ? file.path : currentProduct.image; // Use the new file path if available, otherwise keep the original image
+
+      // Update the user
+      const updatedUser = await User.findByIdAndUpdate(
+        req.params.id,
+        {
+          image: imageUrl,
+        },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user: ", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
+);
 module.exports = router;
