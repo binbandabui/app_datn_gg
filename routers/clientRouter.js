@@ -76,6 +76,8 @@ router.get("/terms-of-service", (req, res) => {
     }
   });
 });
+// Google OAuth callback endpoint
+
 router.get(`/:id`, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) {

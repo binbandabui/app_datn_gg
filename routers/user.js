@@ -133,12 +133,13 @@ router.post("/login/google", async (req, res) => {
     // Verify Google ID token
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: process.env.GOOGLE_CLIENT_ID, // The Google Client ID
     });
+
     const payload = ticket.getPayload();
     const { email, name, sub: googleId } = payload;
 
-    // Find or create user in the database
+    // Find or create the user
     let user = await User.findOne({ email });
     if (!user) {
       user = new User({
@@ -146,7 +147,7 @@ router.post("/login/google", async (req, res) => {
         email,
         googleId,
         signInMethod: "Google",
-        isVerified: true, // Google users can be marked verified directly
+        isVerified: true, // Google users are automatically verified
       });
       await user.save();
     }
@@ -157,10 +158,11 @@ router.post("/login/google", async (req, res) => {
         userId: user.id,
         isAdmin: user.isAdmin,
       },
-      process.env.secret,
+      process.env.JWT_SECRET, // Make sure to set a JWT secret in your .env file
       { expiresIn: "1d" }
     );
 
+    // Send back the user and the token
     res.status(200).json({ user: user.email, token, userId: user.id });
   } catch (error) {
     console.error("Google Sign-In error:", error);
