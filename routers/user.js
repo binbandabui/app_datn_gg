@@ -137,12 +137,12 @@ router.post("/login/google", async (req, res) => {
   console.log("Decoded Audience:", decoded.aud); // Check if it matches your clientID
 
   try {
-    console.log("Expected Audience (GOOGLE_CLIENT_ID):", clientID);
+    console.log("Expected Audience (GOOGLE_CLIENT_ID):", decoded);
 
     // Verify Google ID token
     const ticket = await client.verifyIdToken({
-      idToken,
-      audience: clientID, // The Google Client ID
+      clientID,
+      audience: decoded, // The Google Client ID
     });
 
     const payload = ticket.getPayload();
