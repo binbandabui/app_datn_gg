@@ -9,7 +9,9 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto"); // Import crypto for generating OTPs
 const authJwt = require("../helper/jwt");
 const { OAuth2Client } = require("google-auth-library");
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const clientID = process.env.clientId;
+
+const client = new OAuth2Client(clientID);
 
 // // Mapping of file types for upload validation
 // const FILE_TYPES_MAP = {
@@ -128,16 +130,24 @@ router.post("/login", async (req, res) => {
 });
 router.post("/login/google", async (req, res) => {
   const { idToken } = req.body;
+  const clientID = process.env.clientId;
   const secret = process.env.secret;
+  console.log("client:", clientID);
+  const decoded = jwt.decode(idToken);
+  console.log("Decoded Audience:", decoded.aud); // Check if it matches your clientID
 
   try {
+    console.log("Expected Audience (GOOGLE_CLIENT_ID):", clientID);
+
     // Verify Google ID token
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID, // The Google Client ID
+      audience: clientID, // The Google Client ID
     });
 
     const payload = ticket.getPayload();
+    console.log("Token Payload Audience (aud):", payload.aud);
+
     const { email, name, sub: googleId } = payload;
 
     // Find or create the user
@@ -166,8 +176,10 @@ router.post("/login/google", async (req, res) => {
     // Send back the user and the token
     res.status(200).json({ user: user.email, token, userId: user.id });
   } catch (error) {
-    console.error("Google Sign-In error:", error);
-    res.status(500).json({ message: "Google Sign-In failed" });
+    console.error("Google Sign-In error:", error.message || error);
+    res
+      .status(500)
+      .json({ message: "Google Sign-In failed", error: error.message });
   }
 });
 
