@@ -64,6 +64,11 @@ const userSchema = mongoose.Schema({
     type: Array,
     default: [],
   },
+  signInMethod: {
+    type: String,
+    enum: ["System", "Google", "Facebook"],
+    default: "System",
+  },
   otp: { type: String, default: null },
   otpExpiration: { type: Date, default: null },
 });

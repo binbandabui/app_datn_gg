@@ -56,7 +56,26 @@ const storage = new CloudinaryStorage({
 });
 
 const uploadOptions = multer({ storage: storage });
-
+router.get("/privacy-policy", (req, res) => {
+  const filePath = __dirname + "/public/privacy-policy.html";
+  console.log("Serving Privacy Policy from:", filePath);
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error("Error serving file:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+  });
+});
+router.get("/terms-of-service", (req, res) => {
+  const filePath = __dirname + "/public/terms-of-service.html";
+  console.log("Serving Privacy Policy from:", filePath);
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error("Error serving file:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+  });
+});
 router.get(`/:id`, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) {

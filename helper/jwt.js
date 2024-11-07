@@ -7,6 +7,8 @@ function authJwt() {
   const excludedPaths = new Set([
     "/api/v1/users/login",
     "/api/v1/users/register",
+    "/api/v1/client/privacy-policy",
+    "/api/v1/client/terms-of-service",
   ]);
 
   // Define regex patterns for paths and methods to exclude from JWT authentication

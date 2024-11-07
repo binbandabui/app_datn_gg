@@ -40,6 +40,8 @@ app.use(morgan("tiny"));
 app.use(authJwt());
 app.use(errorHandler);
 app.use("/public/uploads", express.static(__dirname + "/public/uploads"));
+// Serve Privacy Policy
+
 //Cloud image
 cloudinary.config({
   cloud_name: cloudName, // Replace with your Cloud Name

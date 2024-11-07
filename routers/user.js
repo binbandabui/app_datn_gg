@@ -8,6 +8,8 @@ const multer = require("multer");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto"); // Import crypto for generating OTPs
 const authJwt = require("../helper/jwt");
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // // Mapping of file types for upload validation
 // const FILE_TYPES_MAP = {
@@ -95,6 +97,11 @@ router.post("/login", async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
+    if (user.signInMethod !== "System") {
+      return res
+        .status(400)
+        .json({ message: `Please sign in with ${user.signInMethod}` });
+    }
     // Check if the user is verified
     if (!user.isVerified) {
       return res.status(400).json({ message: "User not verified" });
@@ -119,6 +126,48 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+router.post("/login/google", async (req, res) => {
+  const { idToken } = req.body;
+
+  try {
+    // Verify Google ID token
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId } = payload;
+
+    // Find or create user in the database
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({
+        name,
+        email,
+        googleId,
+        signInMethod: "Google",
+        isVerified: true, // Google users can be marked verified directly
+      });
+      await user.save();
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        isAdmin: user.isAdmin,
+      },
+      process.env.secret,
+      { expiresIn: "1d" }
+    );
+
+    res.status(200).json({ user: user.email, token, userId: user.id });
+  } catch (error) {
+    console.error("Google Sign-In error:", error);
+    res.status(500).json({ message: "Google Sign-In failed" });
+  }
+});
+
 // Signin user
 router.post("/register", async (req, res) => {
   try {
@@ -176,6 +225,8 @@ router.post("/register", async (req, res) => {
       paymentInfo: paymentInfo || "", // Default to empty string
       isVerified: false, // Verification status
       otp,
+      signInMethod: "System",
+
       otpExpiration,
     });
 
