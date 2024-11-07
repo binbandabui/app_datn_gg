@@ -128,6 +128,7 @@ router.post("/login", async (req, res) => {
 });
 router.post("/login/google", async (req, res) => {
   const { idToken } = req.body;
+  const secret = process.env.secret;
 
   try {
     // Verify Google ID token
@@ -158,7 +159,7 @@ router.post("/login/google", async (req, res) => {
         userId: user.id,
         isAdmin: user.isAdmin,
       },
-      process.env.JWT_SECRET, // Make sure to set a JWT secret in your .env file
+      secret, // Make sure to set a JWT secret in your .env file
       { expiresIn: "1d" }
     );
 
