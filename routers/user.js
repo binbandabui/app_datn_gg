@@ -10,9 +10,9 @@ const crypto = require("crypto"); // Import crypto for generating OTPs
 const authJwt = require("../helper/jwt");
 const { OAuth2Client } = require("google-auth-library");
 const clientID = process.env.clientId;
-
 const client = new OAuth2Client(clientID);
-
+const { AccessToken, LoginManager } = require("react-native-fbsdk-next");
+const fb = require("fb");
 // // Mapping of file types for upload validation
 // const FILE_TYPES_MAP = {
 //   "image/png": "png",
@@ -182,7 +182,54 @@ router.post("/login/google", async (req, res) => {
       .json({ message: "Google Sign-In failed", error: error.message });
   }
 });
+router.post("/login/facebook", async (req, res) => {
+  const { accessToken } = req.body; // Facebook Access Token
+  const clientID = process.env.FACEBOOK_CLIENT_ID; // Ensure to set your Facebook client ID in .env file
+  const secret = process.env.JWT_SECRET; // JWT Secret Key
+  console.log("client:", clientID);
 
+  try {
+    // Verify the Facebook Access Token
+    const response = await axios.get(
+      `https://graph.facebook.com/me?access_token=${accessToken}&fields=id,name,email`
+    );
+    const { id, name, email } = response.data;
+
+    console.log("Facebook User:", response.data);
+
+    // Find or create the user
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({
+        name,
+        email,
+        facebookId: id, // Correctly store the Facebook ID
+        signInMethod: "Facebook",
+        isVerified: true,
+      });
+
+      await user.save();
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        isAdmin: user.isAdmin,
+      },
+      secret, // Make sure to set your JWT secret in .env file
+      { expiresIn: "1d" }
+    );
+
+    // Send back the user and the token
+    res.status(200).json({ user: user.email, token, userId: user.id });
+  } catch (error) {
+    console.error("Facebook Sign-In error:", error.message || error);
+    res
+      .status(500)
+      .json({ message: "Facebook Sign-In failed", error: error.message });
+  }
+});
 // Signin user
 router.post("/register", async (req, res) => {
   try {
