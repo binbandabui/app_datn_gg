@@ -11,8 +11,7 @@ const authJwt = require("../helper/jwt");
 const { OAuth2Client } = require("google-auth-library");
 const clientID = process.env.clientId;
 const client = new OAuth2Client(clientID);
-const { AccessToken, LoginManager } = require("react-native-fbsdk-next");
-const fb = require("fb");
+
 // // Mapping of file types for upload validation
 // const FILE_TYPES_MAP = {
 //   "image/png": "png",
