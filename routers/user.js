@@ -157,7 +157,9 @@ router.post("/login/google", async (req, res) => {
         email,
         googleId,
         signInMethod: "Google",
-        isVerified: true, // Google users are automatically verified
+        isVerified: true,
+        phone: "",
+        passwordHash: "",
       });
       await user.save();
     }
@@ -211,6 +213,8 @@ router.post("/login/facebook", async (req, res) => {
           signInMethod: "Facebook",
           isVerified: true,
           phone: "",
+          // Empty or optional
+          passwordHash: "",
         });
 
         await user.save();
