@@ -134,7 +134,20 @@ router.post("/login/google", async (req, res) => {
   console.log("client:", clientID);
   const decoded = jwt.decode(idToken);
   console.log("Decoded Audience:", decoded.aud); // Check if it matches your clientID
+  function generateRandomString(length) {
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
+    }
+    return result;
+  }
 
+  // Example usage:
+  const randomString = generateRandomString(30);
   try {
     console.log("Expected Audience (GOOGLE_CLIENT_ID):", decoded);
 
@@ -158,8 +171,7 @@ router.post("/login/google", async (req, res) => {
         googleId,
         signInMethod: "Google",
         isVerified: true,
-        phone: "",
-        passwordHash: "",
+        passwordHash: randomString,
       });
       await user.save();
     }
@@ -186,6 +198,20 @@ router.post("/login/google", async (req, res) => {
 router.post("/login/facebook", async (req, res) => {
   const { accessToken } = req.body; // Facebook Access Token
   const secret = process.env.secret; // JWT Secret Key
+  function generateRandomString(length) {
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
+    }
+    return result;
+  }
+
+  // Example usage:
+  const randomString = generateRandomString(30);
 
   try {
     // Set the access token in the Facebook SDK
@@ -207,14 +233,13 @@ router.post("/login/facebook", async (req, res) => {
       let user = await User.findOne({ email });
       if (!user) {
         user = new User({
-          name,
-          email,
+          name: name,
+          email: email,
           facebookId: id, // Correctly store the Facebook ID
           signInMethod: "Facebook",
           isVerified: true,
-          phone: "",
           // Empty or optional
-          passwordHash: "",
+          passwordHash: randomString,
         });
 
         await user.save();
@@ -240,6 +265,7 @@ router.post("/login/facebook", async (req, res) => {
       .json({ message: "Facebook Sign-In failed", error: error.message });
   }
 });
+
 // Signin user
 router.post("/register", async (req, res) => {
   try {
