@@ -11,7 +11,7 @@ const authJwt = require("../helper/jwt");
 const { OAuth2Client } = require("google-auth-library");
 const clientID = process.env.clientId;
 const client = new OAuth2Client(clientID);
-const axios = require("axios");
+const FB = require("fb"); // Import the Facebook SDK
 // // Mapping of file types for upload validation
 // const FILE_TYPES_MAP = {
 //   "image/png": "png",
@@ -183,45 +183,52 @@ router.post("/login/google", async (req, res) => {
 });
 router.post("/login/facebook", async (req, res) => {
   const { accessToken } = req.body; // Facebook Access Token
-  const clientID = process.env.FACEBOOK_CLIENT_ID; // Ensure to set your Facebook client ID in .env file
-  const secret = process.env.JWT_SECRET; // JWT Secret Key
-  console.log("client:", clientID);
+  const secret = process.env.secret; // JWT Secret Key
 
   try {
-    // Verify the Facebook Access Token
-    const response = await axios.get(
-      `https://graph.facebook.com/me?access_token=${accessToken}&fields=id,name,email`
-    );
-    const { id, name, email } = response.data;
+    // Set the access token in the Facebook SDK
+    FB.setAccessToken(accessToken);
 
-    console.log("Facebook User:", response.data);
+    // Verify the token by calling the Graph API with the me endpoint
+    FB.api("/me", { fields: "id,name,email" }, async (response) => {
+      if (response.error) {
+        console.error("Facebook Token Error:", response.error);
+        return res
+          .status(400)
+          .json({ message: "Invalid Facebook Access Token" });
+      }
 
-    // Find or create the user
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = new User({
-        name,
-        email,
-        facebookId: id, // Correctly store the Facebook ID
-        signInMethod: "Facebook",
-        isVerified: true,
-      });
+      // Extract user details from the response
+      const { id, name, email } = response;
 
-      await user.save();
-    }
+      // Find or create the user in the database
+      let user = await User.findOne({ email });
+      if (!user) {
+        user = new User({
+          name,
+          email,
+          facebookId: id, // Correctly store the Facebook ID
+          signInMethod: "Facebook",
+          isVerified: true,
+          phone: "",
+        });
 
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        isAdmin: user.isAdmin,
-      },
-      secret, // Make sure to set your JWT secret in .env file
-      { expiresIn: "1d" }
-    );
+        await user.save();
+      }
 
-    // Send back the user and the token
-    res.status(200).json({ user: user.email, token, userId: user.id });
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          userId: user.id,
+          isAdmin: user.isAdmin,
+        },
+        secret, // Make sure to set your JWT secret in .env file
+        { expiresIn: "1d" }
+      );
+
+      // Send back the user and the token
+      res.status(200).json({ user: user.email, token, userId: user.id });
+    });
   } catch (error) {
     console.error("Facebook Sign-In error:", error.message || error);
     res
