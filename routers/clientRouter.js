@@ -770,4 +770,32 @@ router.put(
     }
   }
 );
+router.post("/branch/nearest", async (req, res) => {
+  const { longitude, latitude } = req.body;
+
+  if (!longitude || !latitude) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Longitude and latitude are required" });
+  }
+
+  try {
+    // Find the nearest restaurants based on provided coordinates
+    const restaurants = await Restaurant.find({
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
+          $maxDistance: 5000, // example radius in meters
+        },
+      },
+    });
+
+    res.status(200).json({ success: true, data: restaurants });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 module.exports = router;
