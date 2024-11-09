@@ -137,7 +137,7 @@ router.get(`/`, async (req, res) => {
         },
       })
       .populate("user", "email name phone")
-      .populate("restaurant");
+      .populate("restaurant", "name image");
 
     if (!orders || orders.length === 0) {
       return res.status(404).json({ message: "No orders found" });
