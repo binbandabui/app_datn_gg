@@ -24,11 +24,6 @@ const restaurantSchema = mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  location: {
-    type: { type: String, enum: ["Point"], default: "Point" },
-    coordinates: { type: [Number] }, // [longitude, latitude]
-    required: false,
-  },
 });
 restaurantSchema.index({ location: "2dsphere" });
 const Restaurant = mongoose.model("Restaurant", restaurantSchema);
