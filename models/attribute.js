@@ -13,7 +13,7 @@ const attributeSchema = mongoose.Schema({
   defaultPrice: {
     type: Number,
     required: true,
-    default: 30,
+    default: 30000,
   },
   isActive: {
     type: Boolean,
