@@ -95,12 +95,12 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
     const file = req.file;
     const imageUrl = file ? file.path : currentProduct.image;
     // Location of the stored
-    const latitude = req.body.latitude;
-    const longitude = req.body.longitude;
-    const coordinates =
-      latitude && longitude
-        ? [longitude, latitude]
-        : currentRestaurant.location.coordinates;
+    // const latitude = req.body.latitude;
+    // const longitude = req.body.longitude;
+    // const coordinates =
+    //   latitude && longitude
+    //     ? [longitude, latitude]
+    //     : currentRestaurant.location.coordinates;
 
     const restaurant = await Restaurant.findByIdAndUpdate(
       req.params.id,
@@ -113,10 +113,10 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
           req.body.isActive !== undefined
             ? req.body.isActive
             : currentProduct.isActive,
-        location: {
-          type: "Point",
-          coordinates: coordinates,
-        },
+        // location: {
+        //   type: "Point",
+        //   coordinates: coordinates,
+        // },
       },
       { new: true }
 
