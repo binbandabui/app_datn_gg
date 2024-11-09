@@ -720,8 +720,8 @@ router.get("/user/:userId", authJwt(), async (req, res) => {
           },
         ],
       })
-      .populate("user", "email name phone");
-
+      .populate("user", "email name phone")
+      .populate("restaurant", "name image");
     if (!orders || orders.length === 0) {
       return res
         .status(404)
