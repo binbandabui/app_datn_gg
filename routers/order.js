@@ -1,6 +1,7 @@
 const Order = require("../models/order");
 const { OrderItem } = require("../models/order-item"); // Ensure this import is correct
 const Attribute = require("../models/attribute");
+const { createPayment } = require("../helper/createPayment");
 
 const Restaurant = require("../models/restaurant");
 const express = require("express");
@@ -505,4 +506,51 @@ router.get("/calculate-profit", async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+router.post("/pay", createPayment, authJwt());
+const handleWebhook = (req, res) => {
+  const { transactionId, status, checksum } = req.body;
+
+  // Xác thực checksum nếu cần
+  // Nếu PayOS cung cấp checksum, bạn nên xác minh nó ở đây để đảm bảo rằng
+  // thông tin là từ PayOS. Dưới đây là ví dụ cách xác minh checksum.
+
+  const secretKey = process.env.secret; // Khóa bí mật từ PayOS (nếu có)
+  const isValidChecksum = validateChecksum(
+    transactionId,
+    status,
+    checksum,
+    secretKey
+  );
+
+  if (!isValidChecksum) {
+    return res.status(400).send("Checksum không hợp lệ");
+  }
+
+  // Xử lý trạng thái giao dịch
+  if (status === "SUCCESS") {
+    // Xác nhận giao dịch thành công
+    // Ví dụ: cập nhật trạng thái trong cơ sở dữ liệu
+    console.log(`Giao dịch ${transactionId} đã thành công`);
+    // Thực hiện các thao tác cần thiết như cập nhật trạng thái giao dịch trong DB
+  } else {
+    // Xử lý giao dịch thất bại
+    console.log(`Giao dịch ${transactionId} thất bại`);
+    // Thực hiện các thao tác cần thiết cho giao dịch thất bại
+  }
+
+  // Phản hồi thành công để xác nhận đã nhận webhook
+  res.sendStatus(200);
+};
+router.post("/webhook/payos", handleWebhook);
+
+const validateChecksum = (transactionId, status, checksum, secretKey) => {
+  const crypto = require("crypto");
+  const data = `${transactionId}|${status}|${secretKey}`;
+  const generatedChecksum = crypto
+    .createHash("sha256")
+    .update(data)
+    .digest("hex");
+  return generatedChecksum === checksum;
+};
+
 module.exports = router;
