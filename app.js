@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const cloudinary = require("cloudinary").v2;
+const PayOS = require("@payos/node");
 
 require("dotenv").config();
 // Connect string
@@ -25,12 +26,24 @@ const orderItemRouter = require("./routers/order-item");
 const favoriteRouter = require("./routers/favorite");
 const attributeRouter = require("./routers/attribute");
 const clientRouter = require("./routers/clientRouter");
+const paymentRouter = require("./routers/paymentRouter");
 
 //
-
 const authJwt = require("./helper/jwt");
 const errorHandler = require("./helper/error-handler");
 require("dotenv").config();
+const partnerCode = process.env.PARTNER_CODE; // PayOS Partner Code
+const apiKeyPay = process.env.API_KEY; // API Key
+const checksumKeyPay = process.env.CHECKSUM_KEY;
+const clientID = process.env.CLIENT_ID;
+
+const payos = new PayOS(
+  clientID, // Lấy từ biến môi trường
+  apiKeyPay, // Lấy từ biến môi trường
+  checksumKeyPay, // Lấy từ biến môi trường
+  partnerCode // Lấy từ biến môi trường
+);
+console.log("os", payos);
 // Middleware
 app.use(cors());
 app.options("*", cors());
@@ -61,6 +74,7 @@ app.use(`${api}/orderitem`, orderItemRouter);
 app.use(`${api}/favorites`, favoriteRouter);
 app.use(`${api}/attributes`, attributeRouter);
 // app.use(`${api}/carts`, cartRouter);
+app.use(`${api}/payment`, paymentRouter);
 app.use(`${api}/client`, clientRouter);
 mongoose
   .connect(atlas, {
