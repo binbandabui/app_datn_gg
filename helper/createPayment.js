@@ -10,17 +10,16 @@ const payos = new PayOS(
 );
 
 const createPayment = async (req, res) => {
-  const { amount, currency, orderId, customer } = req.body;
+  const { amount, orderCode, customer, returnUrl, cancelUrl } = req.body;
 
   try {
     const paymentData = {
       amount,
-      currency,
-      order_id: orderId,
-      customer,
-      return_url: "your_return_url", // Replace with your actual return URL
-      notify_url: "your_notify_url", // Replace with your actual notify URL
+      orderCode, // Order code must be provided
+      returnUrl, // Return URL for successful payment
+      cancelUrl, // Cancel URL if the payment is canceled
       description: "Payment for order",
+      customer,
     };
 
     const response = await payos.createPaymentLink(paymentData);
