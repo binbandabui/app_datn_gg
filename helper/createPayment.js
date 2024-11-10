@@ -23,7 +23,7 @@ const createPayment = async (req, res) => {
       description: "Payment for order",
     };
 
-    const response = await payos.createPayment(paymentData);
+    const response = await payos.createPaymentLink(paymentData);
     res.status(200).json(response); // Send response back to client
   } catch (err) {
     console.error("Error creating payment:", err);
