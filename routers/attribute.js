@@ -2,8 +2,20 @@ const Attribute = require("../models/attribute");
 const Product = require("../models/products");
 
 const express = require("express");
+const multer = require("multer");
 
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
 const router = express.Router();
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "public", // Specify the folder name in Cloudinary
+    allowed_formats: ["jpg", "png", "jpeg"], // Allowed formats
+  },
+});
+
+const uploadOptions = multer({ storage: storage });
 router.get(`/`, async (req, res) => {
   const attributeList = await Attribute.find();
   if (!attributeList) {
@@ -136,59 +148,79 @@ router.get(`/by-product/:productId`, async (req, res) => {
 //     res.status(500).json({ success: false, message: "Internal server error" });
 //   }
 // });
-router.post("/add/multiple", async (req, res) => {
-  const { productId, attributes } = req.body; // Expecting { productId, attributes: [{ size, price }, ...] }
+router.post(
+  "/add/single",
+  uploadOptions.single("image"), // Single image upload per attribute
+  async (req, res) => {
+    const { productId, size, price, defaultPrice, isActive } = req.body;
+    const file = req.file;
 
-  if (!productId || !Array.isArray(attributes) || attributes.length === 0) {
-    return res.status(400).json({ success: false, message: "Invalid input" });
-  }
+    // Log incoming request for debugging
+    console.log("Incoming Request Data:", req.body);
 
-  try {
-    // Retrieve the product and check if it exists
-    const product = await Product.findById(productId).populate("attributes");
-    if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+    if (!file) {
+      return res.status(400).send("An image file is required.");
     }
 
-    // Save each new attribute and collect their IDs
-    const savedAttributes = [];
-    for (const attribute of attributes) {
+    const imageUrl = file.path; // Path of the uploaded image
+
+    if (
+      !productId ||
+      !size ||
+      !price ||
+      !defaultPrice ||
+      isActive === undefined
+    ) {
+      return res.status(400).json({ success: false, message: "Invalid input" });
+    }
+
+    try {
+      // Retrieve the product and check if it exists
+      const product = await Product.findById(productId).populate("attributes");
+      if (!product) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Product not found" });
+      }
+
+      // Create the new attribute
       const newAttribute = new Attribute({
-        size: attribute.size,
-        price: attribute.price,
-        defaultPrice: attribute.defaultPrice,
+        size,
+        price,
+        image: imageUrl, // Single image for this attribute
+        defaultPrice,
         productId: productId,
-        isActive: attribute.isActive,
+        isActive,
       });
+
       const savedAttribute = await newAttribute.save();
-      savedAttributes.push(savedAttribute);
+
+      // Update the product's attributes array with the new attribute ID
+      product.attributes.push(savedAttribute._id);
+      await product.save();
+
+      // Respond with the updated product, including all attributes
+      res.status(201).json({
+        success: true,
+        product: {
+          _id: product._id,
+          name: product.name,
+          description: product.description,
+          image: product.image,
+          category: product.category,
+          attributes: await Product.findById(productId).populate("attributes"), // re-fetch product with updated attributes
+          isFeatured: product.isFeatured,
+          isActive: product.isActive,
+          dateCreated: product.dateCreated,
+        },
+      });
+    } catch (error) {
+      console.error("Error saving attribute:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
-
-    // Update the product's attributes array with the new attribute IDs
-    product.attributes.push(...savedAttributes.map((attr) => attr._id));
-    await product.save();
-
-    // Respond with the updated product, including all attributes
-    res.status(201).json({
-      success: true,
-      product: {
-        _id: product._id,
-        name: product.name,
-        description: product.description,
-        image: product.image,
-        category: product.category,
-        attributes: await Product.findById(productId).populate("attributes"), // re-fetch product with updated attributes
-        isFeatured: product.isFeatured,
-        isActive: product.isActive,
-        dateCreated: product.dateCreated,
-      },
-    });
-  } catch (error) {
-    console.error("Error saving attributes:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
   }
-});
+);
 
 module.exports = router;

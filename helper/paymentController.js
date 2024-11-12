@@ -62,13 +62,19 @@ const cancelPayment = async (req, res) => {
   }
 };
 
-const verifySignature = (webhookBody, signature) => {
-  const hmac = crypto.createHmac("sha256", process.env.PARTNER_CODE); // Use your partner key or API key
-  const data = JSON.stringify(webhookBody);
-  hmac.update(data);
-  const computedSignature = hmac.digest("hex");
-  return computedSignature === signature;
-};
+function isValidData(data, currentSignature, checksumKey) {
+  const sortedDataByKey = sortObjDataByKey(data);
+  const dataQueryStr = convertObjToQueryStr(sortedDataByKey);
+  const dataToSignature = createHmac("sha256", checksumKey)
+    .update(dataQueryStr)
+    .digest("hex");
+
+  console.log("Generated Signature: ", dataToSignature); // Debugging
+  console.log("Received Signature: ", currentSignature); // Debugging
+
+  return dataToSignature === currentSignature;
+}
+
 const verifyWebhookData = async (req, res) => {
   const webhookBody = req.body;
   const signature = req.headers["x-signature"]; // Adjust the header name if necessary

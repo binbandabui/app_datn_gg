@@ -8,6 +8,8 @@ const {
 } = require("../helper/paymentController");
 const { createHmac } = require("crypto");
 const authJwt = require("../helper/jwt");
+const Order = require("../models/order");
+const Transaction = require("../models/transactions");
 
 router.post("/create-payment", createPayment, authJwt);
 router.get("/payment-info/:id", getPaymentInfo, authJwt); // New route for getting payment info
@@ -83,6 +85,54 @@ router.post("/webhook", (req, res) => {
   } else {
     console.log("Invalid webhook signature!");
     return res.status(400).json({ message: "Invalid webhook signature" });
+  }
+});
+
+// POST /transactions
+router.post("/transactions", async (req, res) => {
+  try {
+    const {
+      orderId,
+      accountNumber,
+      amount,
+      counterAccountBankId,
+      counterAccountBankName,
+      counterAccountName,
+      counterAccountNumber,
+      description,
+      reference,
+      transactionDateTime,
+      virtualAccountName,
+      virtualAccountNumber,
+    } = req.body;
+
+    // Create a new transaction document
+    const transaction = new Transaction({
+      order: orderId,
+      accountNumber,
+      amount,
+      counterAccountBankId,
+      counterAccountBankName,
+      counterAccountName,
+      counterAccountNumber,
+      description,
+      reference,
+      transactionDateTime,
+      virtualAccountName,
+      virtualAccountNumber,
+    });
+
+    // Save transaction to the database
+    const savedTransaction = await transaction.save();
+
+    // Update the order document to include this transaction's ID
+    await Order.findByIdAndUpdate(orderId, {
+      $push: { transactions: savedTransaction._id },
+    });
+
+    res.status(201).json(savedTransaction);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

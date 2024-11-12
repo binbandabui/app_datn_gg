@@ -28,10 +28,12 @@ const orderSchema = new mongoose.Schema({
   totalCost: {
     type: Number,
   },
-  transactionId: {
-    type: String,
-    required: true,
-  },
+  transactions: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Transaction",
+    },
+  ],
 
   user: {
     type: mongoose.Schema.Types.ObjectId,

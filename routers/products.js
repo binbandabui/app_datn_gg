@@ -152,6 +152,8 @@ router.post(`/`, uploadOptions.single("image"), async (req, res) => {
       category: req.body.category,
       isFeatured: req.body.isFeatured,
       isActive: req.body.isActive,
+      price: req.body.price,
+      defaultPrice: req.body.defaultPrice,
     });
 
     product = await product.save();
@@ -272,6 +274,12 @@ router.put(`/:id`, uploadOptions.single("image"), async (req, res) => {
       {
         name: req.body.name || currentProduct.name,
         description: req.body.description || currentProduct.description,
+        defaultPrice:
+          req.body.defaultPrice !== undefined
+            ? req.body.defaultPrice
+            : currentProduct.defaultPrice,
+        price:
+          req.body.price !== undefined ? req.body.price : currentProduct.price,
         category: category,
         image: imageUrl,
         isFeatured:

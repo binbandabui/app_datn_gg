@@ -136,6 +136,7 @@ router.get(`/`, async (req, res) => {
           }, // Populate the attribute field first
         },
       })
+
       .populate("user", "email name phone")
       .populate("restaurant", "name image address");
 
@@ -152,19 +153,17 @@ router.get(`/`, async (req, res) => {
 
 router.post(`/`, authJwt(), async (req, res) => {
   try {
-    // Log the incoming request body for debugging
     console.log("Request Body:", req.body);
 
     // Validate the attribute ID and fetch it for each order item
     const orderItemIds = await Promise.all(
       req.body.orderItems.map(async (orderItem) => {
-        // Check if the attribute exists and retrieve it
+        // Fetch the attribute with populated productId
         const attribute = await Attribute.findById(
           orderItem.attribute
-        ).populate("productId"); // Populate the productId
+        ).populate("productId");
 
-        // Log the retrieved attribute for debugging
-        console.log("Retrieved Attribute:", attribute);
+        console.log("Attribute:", attribute); // Ensure it has a valid productId
 
         if (!attribute) {
           throw new Error(
@@ -172,73 +171,119 @@ router.post(`/`, authJwt(), async (req, res) => {
           );
         }
 
-        // Create a new OrderItem
-        let newOrderItem = new OrderItem({
+        // Create a new OrderItem object with attribute and product information
+        const newOrderItem = new OrderItem({
           quantity: orderItem.quantity,
           drink: orderItem.drink,
           excluded: orderItem.excluded,
-          attribute: orderItem.attribute, // Use the attribute ID from orderItem
-          product: attribute.productId, // Set the product ID from the populated attribute
+          attribute: orderItem.attribute,
+          product: attribute.productId, // Include product as part of the order item
         });
 
-        newOrderItem = await newOrderItem.save();
-        return newOrderItem._id; // Return the newly created OrderItem ID
+        // Save the order item and return its ID
+        const savedOrderItem = await newOrderItem.save();
+        return savedOrderItem._id;
       })
     );
 
-    // Calculate total price using the attribute price
-    const totalPrices = await Promise.all(
-      orderItemIds.map(async (orderItemId) => {
-        const orderItem = await OrderItem.findById(orderItemId).populate(
-          "attribute"
-        );
-        const totalPrice = orderItem.quantity * orderItem.attribute.price; // Use the attribute price
-        return totalPrice;
-      })
-    );
-    const totalCost = await Promise.all(
-      orderItemIds.map(async (orderItemId) => {
-        const orderItem = await OrderItem.findById(orderItemId).populate(
-          "attribute"
-        );
-        const totalCost = orderItem.quantity * orderItem.attribute.defaultPrice; // Use the attribute price
-        return totalCost;
-      })
-    );
+    let totalPrice = 0;
+    let totalCost = 0;
+
+    // Process each order item and calculate prices
+    for (const orderItemId of orderItemIds) {
+      const orderItem = await OrderItem.findById(orderItemId).populate(
+        "attribute product"
+      );
+
+      console.log("data1:", orderItem);
+
+      let itemTotalPrice = 0;
+      let itemTotalCost = 0;
+
+      // Ensure attribute exists and calculate item price
+      if (orderItem.attribute) {
+        const attributePrice = orderItem.attribute.price || 0;
+        itemTotalPrice += attributePrice;
+
+        // Ensure product is populated correctly and calculate price
+        if (orderItem.attribute.productId) {
+          const productPrice = orderItem.product.price || 0;
+          console.log("data2:", productPrice); // Log to check if price is populated
+          itemTotalPrice += orderItem.quantity * productPrice;
+        }
+      } else if (orderItem.product) {
+        const productPrice = orderItem.product.price || 0;
+        itemTotalPrice += orderItem.quantity * productPrice;
+      }
+
+      // Add the calculated item price to the total price
+      totalPrice += itemTotalPrice;
+
+      // Calculate item cost
+      // Ensure attribute exists and calculate item price
+      if (orderItem.attribute) {
+        const attributePrice = orderItem.attribute.defaultPrice || 0;
+        itemTotalCost += attributePrice;
+
+        // Ensure product is populated correctly and calculate price
+        if (orderItem.attribute.productId) {
+          const productPriceCost = orderItem.product.defaultPrice || 0;
+          console.log("data cost:", productPriceCost); // Log to check if price is populated
+          itemTotalCost += orderItem.quantity * productPriceCost;
+        }
+      } else if (orderItem.product) {
+        const productPriceCost = orderItem.product.defaultPrice || 0;
+        itemTotalCost += orderItem.quantity * productPriceCost;
+      }
+
+      // Add the item cost to the total cost
+      totalCost += itemTotalCost;
+    }
+
+    // Validate that the total price and cost are valid numbers
+    if (isNaN(totalPrice)) {
+      throw new Error("Invalid total price calculation.");
+    }
+
+    if (isNaN(totalCost)) {
+      throw new Error("Invalid total cost calculation.");
+    }
+
+    // Ensure valid restaurant and user IDs
     const restaurant = await Restaurant.findById(req.body.restaurant);
     if (!restaurant) {
       throw new Error("Invalid Restaurant ID");
     }
-    const userId = await User.findById(req.body.userId);
-    if (!userId) {
-      throw new Error("Invalid Restaurant ID");
-    }
-    const total = totalPrices.reduce((a, b) => a + b, 0);
-    const cost = totalCost.reduce((a, b) => a + b, 0);
 
+    const user = await User.findById(req.body.userId);
+    if (!user) {
+      throw new Error("Invalid User ID");
+    }
+
+    // Generate a unique transaction ID
     const transactionId = uuidv4();
-    // Create and save the new order
+
+    // Create the new Order object
     let order = new Order({
       orderItems: orderItemIds,
       shippingAddress: req.body.shippingAddress,
       status: req.body.status,
-      paymentMethob: req.body.paymentMethob,
-      totalPrice: total,
-      totalCost: cost,
-      // Use the calculated total price
-      user: userId,
-      restaurant: restaurant, // Use the restaurant ID from the request body
+      paymentMethob: req.body.paymentMethob, // Fixed typo
+      totalPrice: totalPrice,
+      totalCost: totalCost,
+      user: user._id,
+      restaurant: restaurant._id,
       transactionId: transactionId,
     });
 
+    // Save the order
     order = await order.save();
 
-    // Check if the order was successfully saved
     if (!order) return res.status(404).json("Order not found");
 
     res.send(order);
   } catch (error) {
-    console.error("Error creating order:", error); // Log error for debugging
+    console.error("Error creating order:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -257,7 +302,11 @@ router.get(`/:id`, async (req, res) => {
             populate: "category", // Optionally populate the category from the product
           },
         },
-      });
+      })
+      .populate(
+        "transactions",
+        "accountNumber amount counterAccountBankId counterAccountName counterAccountNumber description reference transactionDateTime"
+      );
 
     if (!order) {
       return res
