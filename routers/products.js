@@ -357,14 +357,12 @@ router.get("/get/featured/:count", async (req, res) => {
 });
 router.get("/get/active/price", async (req, res) => {
   try {
-    const products = await Product.find({ active: true, price: 30000 });
+    const products = await Product.find({ isActive: true, price: 30000 });
     if (!products.length) {
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message: "No products found with active = true and price = 30000",
-        });
+      return res.status(500).json({
+        success: false,
+        message: "No products found with active = true and price = 30000",
+      });
     }
     res.status(200).send(products);
   } catch (error) {
