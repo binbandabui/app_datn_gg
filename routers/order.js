@@ -554,5 +554,37 @@ router.get("/calculate-profit", async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+router.delete("/remove/orders", async (req, res) => {
+  const { userId, status } = req.query; // Getting userId from query parameters
+  if (!userId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "User ID is required" });
+  }
 
+  try {
+    // Query to remove orders with status "Pending", "Success", or "Cancel" for a specific user
+    const result = await Order.deleteMany({
+      status: status,
+      user: userId, // Filtering by user ID
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "No orders found for the specified user with the given statuses",
+      });
+    }
+
+    // Send success response
+    res.status(200).json({
+      success: true,
+      message: `${result.deletedCount} orders removed for user ${userId} successfully.`,
+    });
+  } catch (error) {
+    console.error("Error deleting orders:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 module.exports = router;
