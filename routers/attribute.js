@@ -58,27 +58,64 @@ router.get("/:id", async (req, res) => {
   }
   res.status(200).send(attribute);
 });
-router.put("/:id", async (req, res) => {
+router.put("/:id", uploadOptions.single("image"), async (req, res) => {
   try {
-    // const productId = await Product.findById(req.body.productId);
-    // if (!productId) {
-    //   return res.status(404).send("Invalid productId");
-    // }
-    const attribute = await Attribute.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    ).populate("productId", "name"); // Populate the 'productId' with 'name'
+    let attribute = await Attribute.findById(req.params.id);
     if (!attribute) {
       return res
         .status(404)
-        .json({ success: false, message: "attribute not found" });
+        .json({ success: false, message: "Attribute not found" });
     }
+
+    // Checking if attribute can be deactivated
+    if (req.body.isActive === false) {
+      const activeProductsCount = await Product.countDocuments({
+        attributes: req.params.id,
+        isActive: true,
+      });
+
+      if (activeProductsCount > 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Cannot deactivate attribute while active products are assigned to it.",
+        });
+      }
+    }
+
+    const file = req.file;
+    let imagePath = attribute.image; // Default to the existing image path
+    if (file) {
+      imagePath = file.path; // Get the Cloudinary URL for the new image
+    }
+
+    attribute = await Attribute.findByIdAndUpdate(
+      req.params.id,
+      {
+        size: req.body.size || attribute.size,
+        image: imagePath,
+        isActive:
+          req.body.isActive !== undefined
+            ? req.body.isActive
+            : attribute.isActive,
+        productId: req.body.productId || attribute.productId,
+      },
+      { new: true }
+    ).populate("productId", "name"); // Populate the 'productId' with 'name'
+
+    if (!attribute) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Attribute not found" });
+    }
+
     res.status(200).send(attribute);
   } catch (error) {
+    console.error("Error updating attribute:", error);
     res.status(400).json({ success: false, message: error.message });
   }
 });
+
 router.get(`/by-product/:productId`, async (req, res) => {
   const { productId } = req.params;
 
