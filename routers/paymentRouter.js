@@ -89,7 +89,7 @@ router.post("/webhook", (req, res) => {
 });
 
 // POST /transactions
-router.post("/transactions", async (req, res) => {
+router.post("/transactions", authJwt, async (req, res) => {
   try {
     const {
       orderId,
