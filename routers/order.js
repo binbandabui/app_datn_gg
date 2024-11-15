@@ -1,6 +1,7 @@
 const Order = require("../models/order");
 const { OrderItem } = require("../models/order-item"); // Ensure this import is correct
 const Attribute = require("../models/attribute");
+const mongoose = require("mongoose");
 
 const Restaurant = require("../models/restaurant");
 const express = require("express");
@@ -155,128 +156,85 @@ router.post(`/`, authJwt(), async (req, res) => {
   try {
     console.log("Request Body:", req.body);
 
-    // Validate the attribute ID and fetch it for each order item
+    // Step 1: Validate and fetch attributes for each order item
     const orderItemIds = await Promise.all(
       req.body.orderItems.map(async (orderItem) => {
-        // Fetch the attribute with populated productId
-        const attribute = await Attribute.findById(
-          orderItem.attribute
-        ).populate("productId");
+        // Fetch attributes based on provided IDs
+        const attributes = await Attribute.find({
+          _id: { $in: orderItem.attribute },
+        });
 
-        console.log("Attribute:", attribute); // Ensure it has a valid productId
-
-        if (!attribute) {
+        if (attributes.length === 0) {
           throw new Error(
-            `Invalid Attribute ID for order item: ${orderItem.attribute}`
+            `Invalid Attribute IDs for order item: ${orderItem.attribute}`
           );
         }
 
-        // Create a new OrderItem object with attribute and product information
+        // Step 2: Create and save OrderItem
         const newOrderItem = new OrderItem({
           quantity: orderItem.quantity,
           drink: orderItem.drink,
           excluded: orderItem.excluded,
-          attribute: orderItem.attribute,
-          product: attribute.productId, // Include product as part of the order item
+          attribute: attributes.map((attr) => attr._id), // Save attribute IDs
+          product: attributes[0].productId, // Assuming productId is the same across attributes
         });
 
-        // Save the order item and return its ID
         const savedOrderItem = await newOrderItem.save();
-        return savedOrderItem._id;
+        return savedOrderItem._id; // Return the saved OrderItem ID
       })
     );
 
+    // Step 3: Calculate the total price and total cost
     let totalPrice = 0;
     let totalCost = 0;
 
-    // Process each order item and calculate prices
     for (const orderItemId of orderItemIds) {
       const orderItem = await OrderItem.findById(orderItemId).populate(
         "attribute product"
       );
 
-      console.log("data1:", orderItem);
-
       let itemTotalPrice = 0;
       let itemTotalCost = 0;
 
-      // Ensure attribute exists and calculate item price
-      if (orderItem.attribute) {
-        const attributePrice = orderItem.attribute.price || 0;
-        itemTotalPrice += attributePrice;
+      if (orderItem.attribute && orderItem.attribute.length > 0) {
+        orderItem.attribute.forEach((attr) => {
+          itemTotalPrice += attr.price || 0;
+          itemTotalCost += attr.defaultPrice || 0;
+        });
+      }
 
-        // Ensure product is populated correctly and calculate price
-        if (orderItem.attribute.productId) {
-          const productPrice = orderItem.product.price || 0;
-          console.log("data2:", productPrice); // Log to check if price is populated
-          itemTotalPrice += orderItem.quantity * productPrice;
-        }
-      } else if (orderItem.product) {
+      if (orderItem.product) {
         const productPrice = orderItem.product.price || 0;
+        const productCost = orderItem.product.defaultPrice || 0;
         itemTotalPrice += orderItem.quantity * productPrice;
+        itemTotalCost += orderItem.quantity * productCost;
       }
 
-      // Add the calculated item price to the total price
       totalPrice += itemTotalPrice;
-
-      // Calculate item cost
-      // Ensure attribute exists and calculate item price
-      if (orderItem.attribute) {
-        const attributePrice = orderItem.attribute.defaultPrice || 0;
-        itemTotalCost += attributePrice;
-
-        // Ensure product is populated correctly and calculate price
-        if (orderItem.attribute.productId) {
-          const productPriceCost = orderItem.product.defaultPrice || 0;
-          console.log("data cost:", productPriceCost); // Log to check if price is populated
-          itemTotalCost += orderItem.quantity * productPriceCost;
-        }
-      } else if (orderItem.product) {
-        const productPriceCost = orderItem.product.defaultPrice || 0;
-        itemTotalCost += orderItem.quantity * productPriceCost;
-      }
-
-      // Add the item cost to the total cost
       totalCost += itemTotalCost;
     }
 
-    // Validate that the total price and cost are valid numbers
-    if (isNaN(totalPrice)) {
-      throw new Error("Invalid total price calculation.");
-    }
-
-    if (isNaN(totalCost)) {
-      throw new Error("Invalid total cost calculation.");
-    }
-
-    // Ensure valid restaurant and user IDs
+    // Step 4: Verify user and restaurant IDs
     const restaurant = await Restaurant.findById(req.body.restaurant);
-    if (!restaurant) {
-      throw new Error("Invalid Restaurant ID");
-    }
+    if (!restaurant) throw new Error("Invalid Restaurant ID");
 
     const user = await User.findById(req.body.userId);
-    if (!user) {
-      throw new Error("Invalid User ID");
-    }
+    if (!user) throw new Error("Invalid User ID");
 
-    // Generate a unique transaction ID
+    // Step 5: Create Order with unique transaction ID
     const transactionId = uuidv4();
-
-    // Create the new Order object
     let order = new Order({
       orderItems: orderItemIds,
       shippingAddress: req.body.shippingAddress,
       status: req.body.status,
-      paymentMethob: req.body.paymentMethob, // Fixed typo
-      totalPrice: totalPrice,
-      totalCost: totalCost,
+      paymentMethod: req.body.paymentMethod,
+      totalPrice,
+      totalCost,
       user: user._id,
       restaurant: restaurant._id,
-      transactionId: transactionId,
+      transactionId,
     });
 
-    // Save the order
     order = await order.save();
 
     if (!order) return res.status(404).json("Order not found");

@@ -13,11 +13,13 @@ const orderItemSchema = mongoose.Schema({
     type: String,
     default: "Water",
   },
-  attribute: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Attribute",
-    required: true,
-  },
+  attribute: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Attribute",
+      required: true,
+    },
+  ],
   product: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
