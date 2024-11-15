@@ -720,6 +720,12 @@ router.get("/user/:userId", authJwt(), async (req, res) => {
           },
         ],
       })
+      .populate({
+        path: "orderItems",
+        populate: {
+          path: "product", // Populate the attribute field
+        },
+      })
       .populate("user", "email name phone")
       .populate("restaurant", "name image");
     if (!orders || orders.length === 0) {
