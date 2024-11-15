@@ -94,6 +94,8 @@ router.put("/:id", uploadOptions.single("image"), async (req, res) => {
       {
         size: req.body.size || attribute.size,
         image: imagePath,
+        price: req.body.price || attribute.price,
+        defaultPrice: req.body.defaultPrice || attribute.defaultPrice,
         isActive:
           req.body.isActive !== undefined
             ? req.body.isActive
