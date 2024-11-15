@@ -227,7 +227,7 @@ router.post(`/`, authJwt(), async (req, res) => {
       orderItems: orderItemIds,
       shippingAddress: req.body.shippingAddress,
       status: req.body.status,
-      paymentMethod: req.body.paymentMethod,
+      paymentMethob: req.body.paymentMethob,
       totalPrice,
       totalCost,
       user: user._id,
