@@ -726,6 +726,10 @@ router.get("/user/:userId", authJwt(), async (req, res) => {
           path: "product", // Populate the attribute field
         },
       })
+      .populate(
+        "transactions",
+        "amount description reference counterAccountName counterAccountNumber accountNumber"
+      )
       .populate("user", "email name phone")
       .populate("restaurant", "name image");
     if (!orders || orders.length === 0) {
