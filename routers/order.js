@@ -266,11 +266,7 @@ router.get(`/:id`, async (req, res) => {
         populate: {
           path: "product", // Populate the attribute field
         },
-      })
-      .populate(
-        "transactions",
-        "accountNumber amount counterAccountBankId counterAccountName counterAccountNumber description reference transactionDateTime"
-      );
+      });
 
     if (!order) {
       return res
