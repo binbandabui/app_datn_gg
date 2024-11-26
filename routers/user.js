@@ -119,7 +119,12 @@ router.post("/login", async (req, res) => {
         secret,
         { expiresIn: "1d" }
       );
-      res.status(200).send({ user: user.email, token: token, userId: user.id });
+      res.status(200).send({
+        user: user.email,
+        token: token,
+        userId: user.id,
+        isAdmin: user.isAdmin,
+      });
     } else {
       res.status(400).json({ message: "Invalid password" });
     }
