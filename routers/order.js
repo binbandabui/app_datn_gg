@@ -222,7 +222,7 @@ router.post(`/`, authJwt(), async (req, res) => {
     if (!user) throw new Error("Invalid User ID");
 
     // Step 5: Create Order with unique transaction ID
-    const transactionId = uuidv4();
+
     let order = new Order({
       orderItems: orderItemIds,
       shippingAddress: req.body.shippingAddress,
@@ -232,7 +232,7 @@ router.post(`/`, authJwt(), async (req, res) => {
       totalCost,
       user: user._id,
       restaurant: restaurant._id,
-      transactionId,
+      transactionId: req.body.transactionId,
     });
 
     order = await order.save();
