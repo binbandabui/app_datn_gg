@@ -176,9 +176,14 @@ router.get("/search", async (req, res) => {
   try {
     // Use regex to perform a case-insensitive search on name and description fields
     const products = await Product.find({
-      $or: [
-        { name: { $regex: searchQuery, $options: "i" } },
-        { description: { $regex: searchQuery, $options: "i" } },
+      $and: [
+        {
+          $or: [
+            { name: { $regex: searchQuery, $options: "i" } },
+            { description: { $regex: searchQuery, $options: "i" } },
+          ],
+        },
+        { category: { $ne: null } }, // Ensure category is not null
       ],
     }).populate("category");
 
@@ -193,6 +198,7 @@ router.get("/search", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
 // Get a product by ID
 router.get(`/:id`, async (req, res) => {
   try {

@@ -2,6 +2,7 @@ const Order = require("../models/order");
 const { OrderItem } = require("../models/order-item"); // Ensure this import is correct
 const Attribute = require("../models/attribute");
 const mongoose = require("mongoose");
+const product = require("../models/products");
 
 const Restaurant = require("../models/restaurant");
 const express = require("express");
@@ -156,62 +157,73 @@ router.post(`/`, authJwt(), async (req, res) => {
   try {
     console.log("Request Body:", req.body);
 
-    // Step 1: Validate and fetch attributes for each order item
-    const orderItemIds = await Promise.all(
-      req.body.orderItems.map(async (orderItem) => {
-        // Fetch attributes based on provided IDs
-        const attributes = await Attribute.find({
-          _id: { $in: orderItem.attribute },
-        });
-
-        if (attributes.length === 0) {
-          throw new Error(
-            `Invalid Attribute IDs for order item: ${orderItem.attribute}`
-          );
-        }
-
-        // Step 2: Create and save OrderItem
-        const newOrderItem = new OrderItem({
-          quantity: orderItem.quantity,
-          drink: orderItem.drink,
-          excluded: orderItem.excluded,
-          attribute: attributes.map((attr) => attr._id), // Save attribute IDs
-          product: attributes[0].productId, // Assuming productId is the same across attributes
-        });
-
-        const savedOrderItem = await newOrderItem.save();
-        return savedOrderItem._id; // Return the saved OrderItem ID
-      })
-    );
-
-    // Step 3: Calculate the total price and total cost
+    let orderItemIds = [];
     let totalPrice = 0;
     let totalCost = 0;
 
-    for (const orderItemId of orderItemIds) {
-      const orderItem = await OrderItem.findById(orderItemId).populate(
-        "attribute product"
+    // Step 1: Validate and process order items
+    if (req.body.orderItems && req.body.orderItems.length > 0) {
+      orderItemIds = await Promise.all(
+        req.body.orderItems.map(async (orderItem) => {
+          let attributes = [];
+          let product = null;
+
+          // Check if attributes are provided and fetch them
+          if (orderItem.attribute && orderItem.attribute.length > 0) {
+            attributes = await Attribute.find({
+              _id: { $in: orderItem.attribute },
+            });
+
+            if (attributes.length === 0) {
+              throw new Error(
+                `Invalid Attribute IDs for order item: ${orderItem.attribute}`
+              );
+            }
+
+            // Assume the first attribute's productId is representative
+            product = attributes[0].productId;
+          }
+
+          // Step 2: Create and save OrderItem
+          const newOrderItem = new OrderItem({
+            quantity: orderItem.quantity,
+            drink: orderItem.drink,
+            excluded: orderItem.excluded,
+            attribute: attributes.map((attr) => attr._id), // Save attribute IDs
+            product: product || orderItem.product, // Use the product from the request if attributes are empty
+          });
+
+          const savedOrderItem = await newOrderItem.save();
+          return savedOrderItem._id; // Return the saved OrderItem ID
+        })
       );
 
-      let itemTotalPrice = 0;
-      let itemTotalCost = 0;
+      // Step 3: Calculate the total price and total cost
+      for (const orderItemId of orderItemIds) {
+        const orderItem = await OrderItem.findById(orderItemId).populate(
+          "attribute product"
+        );
 
-      if (orderItem.attribute && orderItem.attribute.length > 0) {
-        orderItem.attribute.forEach((attr) => {
-          itemTotalPrice += attr.price || 0;
-          itemTotalCost += attr.defaultPrice || 0;
-        });
+        let itemTotalPrice = 0;
+        let itemTotalCost = 0;
+
+        if (orderItem.attribute && orderItem.attribute.length > 0) {
+          orderItem.attribute.forEach((attr) => {
+            itemTotalPrice += attr.price || 0;
+            itemTotalCost += attr.defaultPrice || 0;
+          });
+        }
+
+        if (orderItem.product) {
+          const productPrice = orderItem.product.price || 0;
+          const productCost = orderItem.product.defaultPrice || 0;
+          itemTotalPrice += orderItem.quantity * productPrice;
+          itemTotalCost += orderItem.quantity * productCost;
+        }
+
+        totalPrice += itemTotalPrice;
+        totalCost += itemTotalCost;
       }
-
-      if (orderItem.product) {
-        const productPrice = orderItem.product.price || 0;
-        const productCost = orderItem.product.defaultPrice || 0;
-        itemTotalPrice += orderItem.quantity * productPrice;
-        itemTotalCost += orderItem.quantity * productCost;
-      }
-
-      totalPrice += itemTotalPrice;
-      totalCost += itemTotalCost;
     }
 
     // Step 4: Verify user and restaurant IDs
@@ -222,11 +234,10 @@ router.post(`/`, authJwt(), async (req, res) => {
     if (!user) throw new Error("Invalid User ID");
 
     // Step 5: Create Order with unique transaction ID
-
     let order = new Order({
       orderItems: orderItemIds,
       shippingAddress: req.body.shippingAddress,
-      status: req.body.status,
+      status: req.body.status || "Pending",
       paymentMethob: req.body.paymentMethob,
       totalPrice,
       totalCost,
